@@ -47,7 +47,9 @@ httpClient.interceptors.response.use(
   (response: AxiosResponse<ApiResponse>) => {
     // 如后端不使用 {code, message, data} 格式，可直接 return response.data
     const payload = response.data as any
-    if (payload && typeof payload === 'object' && 'code' in payload) {
+    // 仅当 code 为数字（业务状态码）时，按约定结构处理；
+    // 避免与领域字段（如单股返回里的字符串 code）冲突
+    if (payload && typeof payload === 'object' && typeof (payload as any).code === 'number') {
       if (payload.code === 0 || payload.code === 200) {
         return payload.data as any
       }

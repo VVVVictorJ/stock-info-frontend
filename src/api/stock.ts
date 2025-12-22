@@ -7,7 +7,7 @@ import type { FetchSingleStockParams, SingleStockResponse } from '@/types/stock'
  * query: code, source(em|ak), raw_only
  */
 export async function fetchSingleStock(params: FetchSingleStockParams) {
-  return http.get<SingleStockResponse>('/stock', {
+  return http.get<SingleStockResponse>('/api/stock', {
     params,
   })
 }

@@ -1,6 +1,7 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 import CatchRaise from '@/views/CatchRaise.vue'
+import Stock from '@/views/Stock.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -16,6 +17,12 @@ const router = createRouter({
       name: 'CatchRaise',
       component: CatchRaise,
       meta: { title: '涨跌捕捉', requiresAuth: false },
+    },
+    {
+      path: '/stock',
+      name: 'Stock',
+      component: Stock,
+      meta: { title: '单股查询' },
     },
   ],
 })

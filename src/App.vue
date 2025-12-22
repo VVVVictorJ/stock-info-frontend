@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { HomeFilled, TrendCharts, Fold, Expand } from '@element-plus/icons-vue'
+import { HomeFilled, TrendCharts, Fold, Expand, Search } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const isCollapsed = ref(false)
@@ -34,6 +34,10 @@ const isCollapsed = ref(false)
             <el-menu-item index="/catch-raise">
               <el-icon><TrendCharts /></el-icon>
               <span>涨跌捕捉</span>
+            </el-menu-item>
+            <el-menu-item index="/stock">
+              <el-icon><Search /></el-icon>
+              <span>单股查询</span>
             </el-menu-item>
           </el-menu>
         </el-aside>
