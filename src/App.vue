@@ -1,11 +1,23 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import { useRoute } from 'vue-router'
+const route = useRoute()
+</script>
 
 <template>
   <div class="common-layout">
     <el-container class="layout-root">
-      <el-header class="layout-header">Header</el-header>
+      <el-header class="layout-header">Stock Info</el-header>
       <el-container>
-        <el-aside class="layout-aside" width="200px">Aside</el-aside>
+        <el-aside class="layout-aside" width="200px">
+          <el-menu
+            :default-active="route.path"
+            router
+            class="menu-vertical"
+          >
+            <el-menu-item index="/">首页</el-menu-item>
+            <el-menu-item index="/catch-raise">涨跌捕捉</el-menu-item>
+          </el-menu>
+        </el-aside>
         <el-main class="layout-main">
           <router-view />
         </el-main>
@@ -33,9 +45,14 @@ html, body, #app {
   border-bottom: 1px solid var(--el-border-color);
 }
 .layout-aside {
+  padding: 0;
   border-right: 1px solid var(--el-border-color);
 }
 .layout-main {
   background-color: var(--el-fill-color-blank);
+}
+.menu-vertical {
+  height: 100%;
+  border-right: none;
 }
 </style>
