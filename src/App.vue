@@ -1,21 +1,40 @@
 <script setup lang="ts">
+import { ref } from 'vue'
 import { useRoute } from 'vue-router'
+import { HomeFilled, TrendCharts, Fold, Expand } from '@element-plus/icons-vue'
+
 const route = useRoute()
+const isCollapsed = ref(false)
 </script>
 
 <template>
   <div class="common-layout">
     <el-container class="layout-root">
-      <el-header class="layout-header">Stock Info</el-header>
+      <el-header class="layout-header">
+        <el-button
+          class="collapse-btn"
+          link
+          :icon="isCollapsed ? Expand : Fold"
+          @click="isCollapsed = !isCollapsed"
+        />
+        <span class="title">Stock Info</span>
+      </el-header>
       <el-container>
-        <el-aside class="layout-aside" width="200px">
+        <el-aside class="layout-aside" :width="isCollapsed ? '64px' : '200px'">
           <el-menu
             :default-active="route.path"
             router
+            :collapse="isCollapsed"
             class="menu-vertical"
           >
-            <el-menu-item index="/">首页</el-menu-item>
-            <el-menu-item index="/catch-raise">涨跌捕捉</el-menu-item>
+            <el-menu-item index="/">
+              <el-icon><HomeFilled /></el-icon>
+              <span>首页</span>
+            </el-menu-item>
+            <el-menu-item index="/catch-raise">
+              <el-icon><TrendCharts /></el-icon>
+              <span>涨跌捕捉</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
         <el-main class="layout-main">
@@ -43,6 +62,7 @@ html, body, #app {
   align-items: center;
   font-weight: 600;
   border-bottom: 1px solid var(--el-border-color);
+  gap: 8px;
 }
 .layout-aside {
   padding: 0;
@@ -54,5 +74,11 @@ html, body, #app {
 .menu-vertical {
   height: 100%;
   border-right: none;
+}
+.collapse-btn {
+  margin-left: -4px;
+}
+.title {
+  user-select: none;
 }
 </style>
