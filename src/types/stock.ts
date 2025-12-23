@@ -5,8 +5,7 @@ export interface SingleStockData {
   f43: number   // 最新价
   f170: number  // 涨跌幅
   f50: number   // 量比
-  f162: number  // 市盈率-动态
-  f167: number  // 市净率
+  f168: number  // 换手率
   f191: number  // 委比
   f137: number  // 主力净流入
 }
@@ -24,7 +23,16 @@ export interface FetchSingleStockParams {
 }
 
 // 涨停筛选接口的行结构（后端返回中文列，使用索引类型以便动态渲染）
-export type CatchRaiseStockData = Record<string, unknown>
+export type CatchRaiseStockData = {
+  f57: string   // 代码
+  f58: string   // 名称
+  f43: number   // 最新价
+  f170: number  // 涨跌幅
+  f50: number   // 量比
+  f168: number  // 换手率
+  f191: number  // 委比
+  f137: number  // 主力净流入
+}
 
 export interface CatchRaiseStockResponse {
   count: number

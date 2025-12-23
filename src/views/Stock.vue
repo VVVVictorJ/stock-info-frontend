@@ -32,15 +32,24 @@
         border
         stripe
       >
-        <el-table-column prop="f57" label="代码" width="140" />
-        <el-table-column prop="f58" label="名称" width="140" />
-        <el-table-column prop="f43" label="最新价" />
-        <el-table-column prop="f170" label="涨跌幅" />
-        <el-table-column prop="f50" label="量比" />
-        <el-table-column prop="f162" label="市盈率-动态" />
-        <el-table-column prop="f167" label="市净率" />
-        <el-table-column prop="f191" label="委比" />
-        <el-table-column prop="f137" label="主力净流入" />
+        <el-table-column
+          v-for="def in fieldDefs"
+          :key="def.key"
+          :prop="def.key"
+          :label="def.label"
+          :min-width="def.key === 'f58' ? 140 : 100"
+        >
+          <template #default="{ row }">
+            <span :class="isPnField(def.key) ? getPnClass(row[def.key]) : ''">
+              <template v-if="def.key === 'f137'">
+                {{ formatThousand(row[def.key]) }}
+              </template>
+              <template v-else>
+                {{ row[def.key] }}
+              </template>
+            </span>
+          </template>
+        </el-table-column>
       </el-table>
       <div v-else class="placeholder">
         请输入股票代码并点击查询
@@ -50,7 +59,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, onMounted } from 'vue'
 import { fetchSingleStock } from '@/api/stock'
 import type { SingleStockData } from '@/types/stock'
 
@@ -65,8 +74,7 @@ const fieldDefs = [
   { key: 'f43', label: '最新价' },
   { key: 'f170', label: '涨跌幅' },
   { key: 'f50', label: '量比' },
-  { key: 'f162', label: '市盈率-动态' },
-  { key: 'f167', label: '市净率' },
+  { key: 'f168', label: '换手率' },
   { key: 'f191', label: '委比' },
   { key: 'f137', label: '主力净流入' },
 ] as const
@@ -89,13 +97,34 @@ async function onSearch() {
   loading.value = true
   try {
     const data = await fetchSingleStock({ code, source: 'em' })
-    console.log(stockData.value)
     stockData.value = data.data
   } catch (err: any) {
     errorMessage.value = err?.message ?? '查询失败'
   } finally {
     loading.value = false
   }
+}
+
+onMounted(() => {
+  onSearch()
+})
+
+function isPnField(key: string): boolean {
+  return key === 'f170' || key === 'f191' || key === 'f137' || key === 'f50' || key === 'f168'
+}
+
+function getPnClass(value: unknown): string {
+  const num = typeof value === 'number' ? value : Number(value)
+  if (Number.isNaN(num)) return ''
+  if (num > 0) return 'pn-pos'
+  if (num < 0) return 'pn-neg'
+  return ''
+}
+
+function formatThousand(value: unknown): string {
+  const num = typeof value === 'number' ? value : Number(value)
+  if (Number.isNaN(num)) return String(value ?? '')
+  return new Intl.NumberFormat('en-US').format(num)
 }
 </script>
 
@@ -116,6 +145,12 @@ async function onSearch() {
 }
 .placeholder {
   color: var(--el-text-color-secondary);
+}
+.pn-pos {
+  color: var(--el-color-danger);
+}
+.pn-neg {
+  color: var(--el-color-success);
 }
 </style>
 

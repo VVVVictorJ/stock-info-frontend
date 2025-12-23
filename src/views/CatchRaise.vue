@@ -74,6 +74,8 @@ const fieldDefs = [
   { key: 'f58', label: '名称' },
   { key: 'f43', label: '最新价' },
   { key: 'f170', label: '涨跌幅' },
+  { key: 'f50', label: '量比' },
+  { key: 'f168', label: '换手率' },
   { key: 'f191', label: '委比' },
   { key: 'f137', label: '主力净流入' },
 ] as const
@@ -99,7 +101,7 @@ onMounted(() => {
 })
 
 function isPnField(key: string): boolean {
-  return key === 'f170' || key === 'f191' || key === 'f137'
+  return key === 'f170' || key === 'f191' || key === 'f137' || key === 'f50' || key === 'f168'
 }
 
 function getPnClass(value: unknown): string {
