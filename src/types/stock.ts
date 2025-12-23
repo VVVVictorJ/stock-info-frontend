@@ -23,4 +23,16 @@ export interface FetchSingleStockParams {
   raw_only?: boolean
 }
 
+// 涨停筛选接口的行结构（后端返回中文列，使用索引类型以便动态渲染）
+export type CatchRaiseStockData = Record<string, unknown>
 
+export interface CatchRaiseStockResponse {
+  count: number
+  items: CatchRaiseStockData[]
+}
+
+export interface FetchCatchRaiseStockParams {
+  concurrency?: number
+  limit?: number
+  pz?: number
+}

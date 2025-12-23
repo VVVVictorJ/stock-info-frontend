@@ -1,5 +1,6 @@
 import { http } from '@/utils/request'
 import type { FetchSingleStockParams, SingleStockResponse } from '@/types/stock'
+import type { FetchCatchRaiseStockParams, CatchRaiseStockResponse } from '@/types/stock'
 
 /**
  * 查询单只股票信息
@@ -7,9 +8,14 @@ import type { FetchSingleStockParams, SingleStockResponse } from '@/types/stock'
  * query: code, source(em|ak), raw_only
  */
 export async function fetchSingleStock(params: FetchSingleStockParams) {
-  return http.get<SingleStockResponse>('/api/stock', {
+  return http.get<SingleStockResponse>('/stock', {
     params,
   })
 }
 
 
+export async function fetchCatchRaiseStock(params: FetchCatchRaiseStockParams) {
+  return http.get<CatchRaiseStockResponse>('/stock/filtered', {
+    params,
+  })
+}
