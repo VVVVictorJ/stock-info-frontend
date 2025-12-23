@@ -16,6 +16,6 @@ export async function fetchSingleStock(params: FetchSingleStockParams) {
 
 export async function fetchCatchRaiseStock(params: FetchCatchRaiseStockParams) {
   return http.get<CatchRaiseStockResponse>('/stock/filtered', {
-    params,
+    params: { ...params, _t: Date.now() } as any,
   })
 }
