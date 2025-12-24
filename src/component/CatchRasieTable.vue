@@ -2,7 +2,7 @@
   <el-table
     :data="sortedItems"
     :class="{'dense-table': props.dense}"
-    size="small"
+    :size="props.dense ? 'small' : 'default'"
     border
     stripe
     @sort-change="onSortChange"
@@ -121,11 +121,16 @@ function formatThousand(value: unknown): string {
 }
 .dense-table {
   font-size: 12px;
-  --el-table-row-height: 34px;
 }
-.dense-table :deep(.el-table__cell) {
-  padding-top: 4px;
-  padding-bottom: 4px;
+.dense-table :deep(.el-table__header .el-table__cell),
+.dense-table :deep(.el-table__body .el-table__cell) {
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  font-size: 12px !important;
+  line-height: 18px !important;
+}
+.dense-table :deep(.el-table__row) {
+  height: auto !important;
 }
 </style>
 
