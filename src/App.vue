@@ -47,7 +47,7 @@ const isCollapsed = ref(false)
       </el-container>
     </el-container>
   </div>
-  </template>
+</template>
 
 <!-- 全局样式，确保页面铺满可视区域 -->
 <style>
