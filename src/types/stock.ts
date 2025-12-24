@@ -39,6 +39,18 @@ export interface CatchRaiseStockResponse {
   items: CatchRaiseStockData[]
 }
 
+// 自定义参数过滤接口的查询参数
+export interface FetchCatchRaiseStockParamParams {
+  pct_min?: number
+  pct_max?: number
+  lb_min?: number
+  hs_min?: number
+  wb_min?: number
+  concurrency?: number
+  limit?: number
+  pz?: number
+}
+
 export interface FetchCatchRaiseStockParams {
   concurrency?: number
   limit?: number

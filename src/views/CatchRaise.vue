@@ -141,7 +141,7 @@
 
 <script setup lang="ts">
 import { ref, reactive, computed, onMounted } from 'vue'
-import { fetchCatchRaiseStock } from '@/api/stock'
+import { fetchCatchRaiseStockParam } from '@/api/stock'
 import type { CatchRaiseStockData } from '@/types/stock'
 import CatchRasieTable from '@/component/CatchRasieTable.vue'
 
@@ -182,9 +182,26 @@ async function loadData() {
   errorMessage.value = ''
   loading.value = true
   try {
-    const res = await fetchCatchRaiseStock({
-      limit: limit.value,
-    })
+    // 组装参数：仅在勾选时传对应参数，未提供数值则不传，使用后端默认
+    const params: Record<string, unknown> = {}
+    if (typeof limit.value === 'number') {
+      params.limit = limit.value
+    }
+    if (filters.f170.use) {
+      if (typeof filters.f170.min === 'number') params.pct_min = filters.f170.min
+      if (typeof filters.f170.max === 'number') params.pct_max = filters.f170.max
+    }
+    if (filters.f50.use) {
+      if (typeof filters.f50.min === 'number') params.lb_min = filters.f50.min
+    }
+    if (filters.f168.use) {
+      if (typeof filters.f168.min === 'number') params.hs_min = filters.f168.min
+    }
+    if (filters.f191.use) {
+      if (typeof filters.f191.min === 'number') params.wb_min = filters.f191.min
+    }
+
+    const res = await fetchCatchRaiseStockParam(params as any)
     items.value = res.items ?? []
     // 成功后重置超时计数
     timeoutCount.value = 0
