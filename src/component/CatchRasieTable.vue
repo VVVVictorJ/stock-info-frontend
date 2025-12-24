@@ -1,10 +1,11 @@
 <template>
   <el-table
-    :data="props.items"
+    :data="sortedItems"
     :class="{'dense-table': props.dense}"
     size="small"
     border
     stripe
+    @sort-change="onSortChange"
   >
     <el-table-column
       v-for="def in displayedFields"
@@ -14,6 +15,7 @@
       :min-width="def.key === 'f58' ? 140 : 100"
       :show-overflow-tooltip="true"
       :align="numericKeys.has(def.key) ? 'right' : 'left'"
+      :sortable="isSortable(def.key) ? 'custom' : false"
     >
       <template #default="{ row }">
         <span :class="getPnClass(row[def.key], def.key)">
@@ -30,7 +32,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 
 interface FieldDef {
   key: string
@@ -51,6 +53,48 @@ const displayedFields = computed(() => {
   const keySet = new Set(props.visibleKeys)
   return props.fieldDefs.filter(d => keySet.has(d.key))
 })
+
+// ===== 排序逻辑 =====
+const sortProp = ref<string>('')
+const sortOrder = ref<'ascending' | 'descending' | null>(null)
+
+function isSortable(key: string): boolean {
+  return key !== 'f57' && key !== 'f58'
+}
+
+const sortedItems = computed(() => {
+  const data = props.items || []
+  if (!sortProp.value || !sortOrder.value) return data
+  const prop = sortProp.value
+  const order = sortOrder.value
+  const arr = [...data]
+  arr.sort((a: any, b: any) => {
+    const av = a?.[prop]
+    const bv = b?.[prop]
+    const an = typeof av === 'number' ? av : Number(av)
+    const bn = typeof bv === 'number' ? bv : Number(bv)
+    let cmp: number
+    if (!Number.isNaN(an) && !Number.isNaN(bn)) {
+      cmp = an - bn
+    } else {
+      const as = av?.toString?.() ?? ''
+      const bs = bv?.toString?.() ?? ''
+      cmp = as.localeCompare(bs)
+    }
+    return order === 'ascending' ? cmp : -cmp
+  })
+  return arr
+})
+
+function onSortChange(e: { prop: string; order: 'ascending' | 'descending' | null }) {
+  if (!e.order || !e.prop || !isSortable(e.prop)) {
+    sortProp.value = ''
+    sortOrder.value = null
+    return
+  }
+  sortProp.value = e.prop
+  sortOrder.value = e.order
+}
 
 function getPnClass(value: unknown, key: string): string {
   if (!pnKeys.has(key)) return ''
