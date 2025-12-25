@@ -116,7 +116,7 @@
           </template>
           <div class="columns-panel">
             <el-checkbox-group v-model="visibleKeys">
-              <el-checkbox v-for="def in fieldDefs" :key="def.key" :label="def.key">
+              <el-checkbox v-for="def in fieldDefs" :key="def.key" :value="def.key">
                 {{ def.label }}
               </el-checkbox>
             </el-checkbox-group>
