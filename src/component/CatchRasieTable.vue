@@ -16,16 +16,29 @@
       :show-overflow-tooltip="true"
       :align="numericKeys.has(def.key) ? 'right' : 'left'"
       :sortable="isSortable(def.key) ? 'custom' : false"
+      :render-header="undefined"
     >
       <template #default="{ row }">
-        <span :class="getPnClass(row[def.key], def.key)">
-          <template v-if="def.key === 'f137'">
-            {{ formatThousand(row[def.key]) }}
-          </template>
-          <template v-else>
+        <!-- 名称列渲染为跳转链接，基于代码列 f57 -->
+        <template v-if="def.key === 'f58'">
+          <a
+            :href="buildQuoteLink(row['f57'])"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
             {{ row[def.key] }}
-          </template>
-        </span>
+          </a>
+        </template>
+        <template v-else>
+          <span :class="getPnClass(row[def.key], def.key)">
+            <template v-if="def.key === 'f137'">
+              {{ formatThousand(row[def.key]) }}
+            </template>
+            <template v-else>
+              {{ row[def.key] }}
+            </template>
+          </span>
+        </template>
       </template>
     </el-table-column>
   </el-table>
@@ -109,6 +122,13 @@ function formatThousand(value: unknown): string {
   const num = typeof value === 'number' ? value : Number(value)
   if (Number.isNaN(num)) return String(value ?? '')
   return new Intl.NumberFormat('en-US').format(num)
+}
+
+function buildQuoteLink(codeVal: unknown): string {
+  const code = (codeVal ?? '').toString().trim()
+  if (!code) return 'https://quote.eastmoney.com'
+  const prefix = code.startsWith('6') ? 'sh' : 'sz'
+  return `https://quote.eastmoney.com/${prefix}${code}.html`
 }
 </script>
 
