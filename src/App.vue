@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { HomeFilled, TrendCharts, Fold, Expand, Search } from '@element-plus/icons-vue'
+import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const isCollapsed = ref(false)
@@ -39,6 +39,10 @@ const isCollapsed = ref(false)
               <el-icon><Search /></el-icon>
               <span>单股查询</span>
             </el-menu-item>
+            <el-menu-item index="/trade-date-query">
+              <el-icon><Calendar /></el-icon>
+              <span>交易日查询</span>
+            </el-menu-item>
           </el-menu>
         </el-aside>
         <el-main class="layout-main">
@@ -74,6 +78,8 @@ html, body, #app {
 }
 .layout-main {
   background-color: var(--el-fill-color-blank);
+  padding: 0;
+  overflow: hidden;
 }
 .menu-vertical {
   height: 100%;

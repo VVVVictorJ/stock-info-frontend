@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 import CatchRaise from '@/views/CatchRaise.vue'
 import Stock from '@/views/Stock.vue'
+import TradeDateQuery from '@/views/TradeDateQuery.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -23,6 +24,12 @@ const router = createRouter({
       name: 'Stock',
       component: Stock,
       meta: { title: '单股查询' },
+    },
+    {
+      path: '/trade-date-query',
+      name: 'TradeDateQuery',
+      component: TradeDateQuery,
+      meta: { title: '交易日查询' },
     },
   ],
 })
