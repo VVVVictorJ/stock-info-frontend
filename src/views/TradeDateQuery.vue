@@ -141,7 +141,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { fetchTradeDateQuery } from '@/api/stock'
 import type { TradeDateQueryResponse, TradeDateQueryItem } from '@/types/tradeDateQuery'
@@ -158,6 +158,8 @@ const currentPageSize = ref(20)
 
 // 股票代码筛选
 const filterStockCode = ref('')
+const allData = ref<TradeDateQueryItem[]>([])  // 存储全量数据用于筛选
+const isLoadingAll = ref(false)  // 加载全量数据的状态
 
 // 初始化日期为今天
 onMounted(() => {
@@ -165,18 +167,56 @@ onMounted(() => {
   queryDate.value = today.toISOString().split('T')[0] as string
 })
 
+// 加载全量数据（分批次请求，每次100条）
+async function loadAllData() {
+  if (!queryDate.value || !responseData.value) return
+
+  const totalRecordsCount = responseData.value.total
+  if (totalRecordsCount === 0) return
+
+  isLoadingAll.value = true
+  const batchSize = 100
+  const totalPages = Math.ceil(totalRecordsCount / batchSize)
+  const allResults: TradeDateQueryItem[] = []
+
+  try {
+    for (let page = 1; page <= totalPages; page++) {
+      const res = await fetchTradeDateQuery({
+        trade_date: queryDate.value,
+        page: page,
+        page_size: batchSize,
+      })
+      allResults.push(...res.data)
+    }
+    allData.value = allResults
+  } catch (err) {
+    console.error('Failed to fetch all data for filtering:', err)
+  } finally {
+    isLoadingAll.value = false
+  }
+}
+
+// 监听筛选输入，当有输入时请求全量数据
+watch(filterStockCode, async (newVal) => {
+  if (newVal.trim() && responseData.value && queryDate.value) {
+    // 有筛选值时，请求全量数据（如果还没有加载过）
+    if (allData.value.length === 0) {
+      await loadAllData()
+    }
+  }
+})
+
 // 筛选后的数据
 const filteredData = computed(() => {
-  if (!responseData.value || !responseData.value.data) return []
-
-  const data = responseData.value.data
   if (!filterStockCode.value.trim()) {
-    return data
+    // 无筛选时，显示当前页数据
+    return responseData.value?.data || []
   }
 
-  // 根据股票代码筛选（支持模糊匹配）
+  // 有筛选时，从全量数据中筛选
+  const dataSource = allData.value.length > 0 ? allData.value : (responseData.value?.data || [])
   const keyword = filterStockCode.value.trim().toLowerCase()
-  return data.filter(item =>
+  return dataSource.filter(item =>
     item.stock_code.toLowerCase().includes(keyword)
   )
 })
@@ -188,6 +228,9 @@ const tableData = computed(() => {
 
 // 筛选后的总记录数
 const filteredTotal = computed(() => {
+  if (!filterStockCode.value.trim()) {
+    return responseData.value?.total || 0
+  }
   return filteredData.value.length
 })
 
@@ -235,6 +278,9 @@ async function handleQuery() {
 async function handleInitialQuery() {
   currentPage.value = 1
   currentPageSize.value = pageSize.value
+  // 清空筛选和全量数据缓存
+  filterStockCode.value = ''
+  allData.value = []
   await handleQuery()
 }
 
