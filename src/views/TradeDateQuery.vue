@@ -21,7 +21,7 @@
           <el-option label="50条/页" :value="50" />
           <el-option label="100条/页" :value="100" />
         </el-select>
-        <el-button type="primary" :loading="loading" @click="handleQuery">
+        <el-button type="primary" :loading="loading" @click="handleInitialQuery">
           <el-icon><Search /></el-icon>
           查询
         </el-button>
@@ -49,13 +49,14 @@
       </template>
 
       <div class="table-wrapper">
-        <el-table
-          :data="tableData"
-          stripe
-          :height="tableHeight"
-          style="width: 100%"
-          v-loading="loading"
-        >
+        <div class="table-container">
+          <el-table
+            :data="tableData"
+            stripe
+            :height="tableHeight"
+            style="width: 100%"
+            v-loading="loading"
+          >
           <el-table-column prop="stock_code" label="股票代码" min-width="100" sortable />
           <el-table-column prop="stock_name" label="股票名称" min-width="100" sortable />
           <el-table-column prop="latest_price" label="最新价" min-width="100" sortable align="right">
@@ -110,6 +111,7 @@
             </template>
           </el-table-column>
         </el-table>
+        </div>
 
         <div class="pagination-container">
           <el-pagination
@@ -163,18 +165,15 @@ function calculateTableHeight() {
   tableHeight.value = '100%'
 }
 
-// 表格数据（前端分页）
+// 表格数据（后端分页，直接显示）
 const tableData = computed(() => {
   if (!responseData.value || !responseData.value.data) return []
-
-  const start = (currentPage.value - 1) * currentPageSize.value
-  const end = start + currentPageSize.value
-  return responseData.value.data.slice(start, end)
+  return responseData.value.data
 })
 
-// 总记录数
+// 总记录数（使用后端返回的 total）
 const totalRecords = computed(() => {
-  return responseData.value?.data?.length || 0
+  return responseData.value?.total || 0
 })
 
 // 查询处理
@@ -190,13 +189,11 @@ async function handleQuery() {
   try {
     const res = await fetchTradeDateQuery({
       trade_date: queryDate.value,
-      page: 1,
-      page_size: pageSize.value,
+      page: currentPage.value,
+      page_size: currentPageSize.value,
     })
 
     responseData.value = res
-    currentPage.value = 1
-    currentPageSize.value = pageSize.value
 
     if (!res.data || res.data.length === 0) {
       errorMessage.value = '未查询到数据'
@@ -209,14 +206,23 @@ async function handleQuery() {
   }
 }
 
-// 分页处理
-function handleSizeChange(size: number) {
-  currentPageSize.value = size
+// 初始查询（重置到第一页）
+async function handleInitialQuery() {
   currentPage.value = 1
+  currentPageSize.value = pageSize.value
+  await handleQuery()
 }
 
-function handleCurrentChange(page: number) {
+// 分页处理（重新请求后端数据）
+async function handleSizeChange(size: number) {
+  currentPageSize.value = size
+  currentPage.value = 1
+  await handleQuery()
+}
+
+async function handleCurrentChange(page: number) {
   currentPage.value = page
+  await handleQuery()
 }
 
 // 格式化数字
@@ -368,10 +374,19 @@ function getPriceTrendClass(row: TradeDateQueryItem): string {
   overflow: hidden;
 }
 
+.table-container {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
 .pagination-container {
-  padding-top: 12px;
+  flex-shrink: 0;
+  padding: 12px 0;
   display: flex;
   justify-content: center;
+  background: white;
+  z-index: 10;
 }
 
 /* 表格样式 */
