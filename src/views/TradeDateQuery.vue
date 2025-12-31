@@ -42,9 +42,20 @@
       <template #header>
         <div class="card-header">
           <span>查询结果</span>
-          <span v-if="responseData" class="result-stats">
-            共 {{ responseData.total }} 条，当前第 {{ responseData.page }}/{{ responseData.total_pages }} 页
-          </span>
+          <div class="header-right">
+            <div class="filter-input">
+              <span class="filter-label">股票代码:</span>
+              <el-input
+                v-model="filterStockCode"
+                placeholder="输入股票代码筛选"
+                clearable
+                style="width: 180px"
+              />
+            </div>
+            <span v-if="responseData" class="result-stats">
+              共 {{ filteredTotal }} 条，当前第 {{ currentPage }}/{{ totalPages }} 页
+            </span>
+          </div>
         </div>
       </template>
 
@@ -145,21 +156,49 @@ const responseData = ref<TradeDateQueryResponse | null>(null)
 const currentPage = ref(1)
 const currentPageSize = ref(20)
 
+// 股票代码筛选
+const filterStockCode = ref('')
+
 // 初始化日期为今天
 onMounted(() => {
   const today = new Date()
   queryDate.value = today.toISOString().split('T')[0] as string
 })
 
-// 表格数据（后端分页，直接显示）
-const tableData = computed(() => {
+// 筛选后的数据
+const filteredData = computed(() => {
   if (!responseData.value || !responseData.value.data) return []
-  return responseData.value.data
+
+  const data = responseData.value.data
+  if (!filterStockCode.value.trim()) {
+    return data
+  }
+
+  // 根据股票代码筛选（支持模糊匹配）
+  const keyword = filterStockCode.value.trim().toLowerCase()
+  return data.filter(item =>
+    item.stock_code.toLowerCase().includes(keyword)
+  )
+})
+
+// 表格数据（应用筛选后的数据）
+const tableData = computed(() => {
+  return filteredData.value
+})
+
+// 筛选后的总记录数
+const filteredTotal = computed(() => {
+  return filteredData.value.length
 })
 
 // 总记录数（使用后端返回的 total）
 const totalRecords = computed(() => {
   return responseData.value?.total || 0
+})
+
+// 总页数
+const totalPages = computed(() => {
+  return responseData.value?.total_pages || 0
 })
 
 // 查询处理
@@ -309,10 +348,30 @@ function getPriceTrendClass(row: TradeDateQueryItem): string {
   font-weight: 600;
 }
 
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.filter-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.filter-label {
+  font-size: 14px;
+  font-weight: normal;
+  color: var(--el-text-color-regular);
+  white-space: nowrap;
+}
+
 .result-stats {
   font-size: 14px;
   font-weight: normal;
   color: var(--el-text-color-secondary);
+  white-space: nowrap;
 }
 
 .query-form {
