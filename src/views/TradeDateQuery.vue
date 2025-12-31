@@ -44,6 +44,19 @@
           <span>查询结果</span>
           <div class="header-right">
             <div class="filter-input">
+              <span class="filter-label">涨跌状态:</span>
+              <el-select
+                v-model="filterTrendStatus"
+                placeholder="全部"
+                clearable
+                style="width: 120px"
+              >
+                <el-option label="上涨" value="up" />
+                <el-option label="下跌" value="down" />
+                <el-option label="持平" value="flat" />
+              </el-select>
+            </div>
+            <div class="filter-input">
               <span class="filter-label">股票代码:</span>
               <el-input
                 v-model="filterStockCode"
@@ -66,7 +79,7 @@
             stripe
             style="width: 100%"
             height="100%"
-            v-loading="loading"
+            v-loading="loading || isLoadingAll"
           >
           <el-table-column prop="stock_code" label="股票代码" min-width="100" sortable />
           <el-table-column prop="stock_name" label="股票名称" min-width="100" sortable />
@@ -141,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { fetchTradeDateQuery } from '@/api/stock'
 import type { TradeDateQueryResponse, TradeDateQueryItem } from '@/types/tradeDateQuery'
@@ -158,8 +171,12 @@ const currentPageSize = ref(20)
 
 // 股票代码筛选
 const filterStockCode = ref('')
-const allData = ref<TradeDateQueryItem[]>([])  // 存储全量数据用于筛选
-const isLoadingAll = ref(false)  // 加载全量数据的状态
+// 涨跌状态筛选
+const filterTrendStatus = ref('')
+// 全量数据存储（用于筛选）
+const allData = ref<TradeDateQueryItem[]>([])
+// 全量数据加载状态
+const isLoadingAll = ref(false)
 
 // 初始化日期为今天
 onMounted(() => {
@@ -196,29 +213,56 @@ async function loadAllData() {
   }
 }
 
-// 监听筛选输入，当有输入时请求全量数据
-watch(filterStockCode, async (newVal) => {
-  if (newVal.trim() && responseData.value && queryDate.value) {
+// 监听筛选输入，当有筛选时请求全量数据
+watch([filterStockCode, filterTrendStatus], async ([newStockCode, newTrendStatus]) => {
+  const hasFilter = newStockCode.trim() || newTrendStatus
+
+  if (hasFilter && responseData.value && queryDate.value) {
     // 有筛选值时，请求全量数据（如果还没有加载过）
     if (allData.value.length === 0) {
       await loadAllData()
     }
+  } else {
+    // 清空筛选时，也清空全量数据缓存
+    allData.value = []
   }
 })
 
 // 筛选后的数据
 const filteredData = computed(() => {
-  if (!filterStockCode.value.trim()) {
-    // 无筛选时，显示当前页数据
-    return responseData.value?.data || []
+  if (!responseData.value || !responseData.value.data) return []
+
+  const hasFilter = filterStockCode.value.trim() || filterTrendStatus.value
+
+  // 如果有筛选条件且已加载全量数据，使用全量数据；否则使用当前页数据
+  let data = hasFilter && allData.value.length > 0
+    ? allData.value
+    : responseData.value.data
+
+  // 根据涨跌状态筛选
+  if (filterTrendStatus.value) {
+    data = data.filter(item => {
+      const trend = getPriceTrend(item)
+      if (filterTrendStatus.value === 'up') {
+        return trend.includes('上涨')
+      } else if (filterTrendStatus.value === 'down') {
+        return trend.includes('下跌')
+      } else if (filterTrendStatus.value === 'flat') {
+        return trend.includes('持平')
+      }
+      return true
+    })
   }
 
-  // 有筛选时，从全量数据中筛选
-  const dataSource = allData.value.length > 0 ? allData.value : (responseData.value?.data || [])
-  const keyword = filterStockCode.value.trim().toLowerCase()
-  return dataSource.filter(item =>
-    item.stock_code.toLowerCase().includes(keyword)
-  )
+  // 根据股票代码筛选（支持模糊匹配）
+  if (filterStockCode.value.trim()) {
+    const keyword = filterStockCode.value.trim().toLowerCase()
+    data = data.filter(item =>
+      item.stock_code.toLowerCase().includes(keyword)
+    )
+  }
+
+  return data
 })
 
 // 表格数据（应用筛选后的数据）
@@ -228,9 +272,14 @@ const tableData = computed(() => {
 
 // 筛选后的总记录数
 const filteredTotal = computed(() => {
-  if (!filterStockCode.value.trim()) {
+  const hasFilter = filterStockCode.value.trim() || filterTrendStatus.value
+
+  if (!hasFilter) {
+    // 无筛选时返回后端 total
     return responseData.value?.total || 0
   }
+
+  // 有筛选时返回筛选后的数量
   return filteredData.value.length
 })
 
@@ -278,9 +327,9 @@ async function handleQuery() {
 async function handleInitialQuery() {
   currentPage.value = 1
   currentPageSize.value = pageSize.value
-  // 清空筛选和全量数据缓存
-  filterStockCode.value = ''
-  allData.value = []
+  filterStockCode.value = '' // 清空股票代码筛选
+  filterTrendStatus.value = '' // 清空涨跌状态筛选
+  allData.value = [] // 清空全量数据缓存
   await handleQuery()
 }
 
