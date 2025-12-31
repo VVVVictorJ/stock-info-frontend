@@ -2,6 +2,7 @@ import { http } from '@/utils/request'
 import type { FetchSingleStockParams, SingleStockResponse } from '@/types/stock'
 import type { FetchCatchRaiseStockParams, CatchRaiseStockResponse, FetchCatchRaiseStockParamParams } from '@/types/stock'
 import type { TradeDateQueryRequest, TradeDateQueryResponse } from '@/types/tradeDateQuery'
+import type { PriceCompareRequest, PriceCompareResponse } from '@/types/priceCompare'
 
 /**
  * 查询单只股票信息
@@ -31,4 +32,9 @@ export async function fetchCatchRaiseStockParam(params: FetchCatchRaiseStockPara
 // 交易日查询（后端路径：/stock-trade-date-query）
 export async function fetchTradeDateQuery(params: TradeDateQueryRequest) {
   return http.post<TradeDateQueryResponse>('/stock-trade-date-query', params)
+}
+
+// 价格对比查询（后端路径：/stock-price-compare）
+export async function fetchPriceCompare(params: PriceCompareRequest) {
+  return http.post<PriceCompareResponse>('/stock-price-compare', params)
 }

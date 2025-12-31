@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar } from '@element-plus/icons-vue'
+import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar, DataAnalysis } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const isCollapsed = ref(false)
@@ -42,6 +42,10 @@ const isCollapsed = ref(false)
             <el-menu-item index="/trade-date-query">
               <el-icon><Calendar /></el-icon>
               <span>交易日查询</span>
+            </el-menu-item>
+            <el-menu-item index="/price-compare">
+              <el-icon><DataAnalysis /></el-icon>
+              <span>价格对比</span>
             </el-menu-item>
           </el-menu>
         </el-aside>

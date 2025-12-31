@@ -3,6 +3,7 @@ import Home from '@/views/Home.vue'
 import CatchRaise from '@/views/CatchRaise.vue'
 import Stock from '@/views/Stock.vue'
 import TradeDateQuery from '@/views/TradeDateQuery.vue'
+import PriceCompare from '@/views/PriceCompare.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,6 +31,12 @@ const router = createRouter({
       name: 'TradeDateQuery',
       component: TradeDateQuery,
       meta: { title: '交易日查询' },
+    },
+    {
+      path: '/price-compare',
+      name: 'PriceCompare',
+      component: PriceCompare,
+      meta: { title: '价格对比' },
     },
   ],
 })
