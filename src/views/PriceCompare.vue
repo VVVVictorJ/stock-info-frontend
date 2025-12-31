@@ -212,24 +212,11 @@ const filteredData = computed(() => {
 
 // 表格数据（应用筛选后的数据）
 const tableData = computed(() => {
-  // #region agent log
-  const data = filteredData.value;
-  const stockCodes = data.map(item => item.stock_code);
-  const uniqueStockCodes = [...new Set(stockCodes)];
-  fetch('http://127.0.0.1:7242/ingest/0ee4215d-6943-4299-947e-317aabad4cec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PriceCompare.vue:214',message:'tableData计算',data:{totalRows:data.length,uniqueStockCodes:uniqueStockCodes.length,stockCodes,hasDuplicates:stockCodes.length !== uniqueStockCodes.length},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A,B'})}).catch(()=>{});
-  // #endregion
   return filteredData.value
 })
 
 // 筛选后的总记录数
 const filteredTotal = computed(() => {
-  // #region agent log
-  const hasFilter = !filterStockCode.value.trim();
-  const backendTotal = responseData.value?.total || 0;
-  const filteredLength = filteredData.value.length;
-  const result = hasFilter ? backendTotal : filteredLength;
-  fetch('http://127.0.0.1:7242/ingest/0ee4215d-6943-4299-947e-317aabad4cec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PriceCompare.vue:219',message:'filteredTotal计算',data:{hasFilter,filterStockCode:filterStockCode.value,backendTotal,filteredLength,result,responseDataExists:!!responseData.value},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'B,C'})}).catch(()=>{});
-  // #endregion
   if (!filterStockCode.value.trim()) {
     return responseData.value?.total || 0
   }
@@ -262,10 +249,6 @@ async function handleQuery() {
       page: currentPage.value,
       page_size: currentPageSize.value,
     })
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/0ee4215d-6943-4299-947e-317aabad4cec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'PriceCompare.vue:253',message:'API响应数据',data:{total:res.total,dataLength:res.data.length,page:res.page,pageSize:res.page_size,snapshotDate:res.snapshot_date,tradeDate:res.trade_date,filterStockCode:filterStockCode.value},timestamp:Date.now(),sessionId:'debug-session',runId:'post-fix',hypothesisId:'A,C'})}).catch(()=>{});
-    // #endregion
 
     responseData.value = res
 
