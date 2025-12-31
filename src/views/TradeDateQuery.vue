@@ -44,6 +44,19 @@
           <span>查询结果</span>
           <div class="header-right">
             <div class="filter-input">
+              <span class="filter-label">涨跌状态:</span>
+              <el-select
+                v-model="filterTrendStatus"
+                placeholder="全部"
+                clearable
+                style="width: 120px"
+              >
+                <el-option label="上涨" value="up" />
+                <el-option label="下跌" value="down" />
+                <el-option label="持平" value="flat" />
+              </el-select>
+            </div>
+            <div class="filter-input">
               <span class="filter-label">股票代码:</span>
               <el-input
                 v-model="filterStockCode"
@@ -66,7 +79,7 @@
             stripe
             style="width: 100%"
             height="100%"
-            v-loading="loading"
+            v-loading="loading || isLoadingAll"
           >
           <el-table-column prop="stock_code" label="股票代码" min-width="100" sortable />
           <el-table-column prop="stock_name" label="股票名称" min-width="100" sortable />
@@ -141,7 +154,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick } from 'vue'
+import { ref, computed, onMounted, nextTick, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { fetchTradeDateQuery } from '@/api/stock'
 import type { TradeDateQueryResponse, TradeDateQueryItem } from '@/types/tradeDateQuery'
@@ -158,6 +171,12 @@ const currentPageSize = ref(20)
 
 // 股票代码筛选
 const filterStockCode = ref('')
+// 涨跌状态筛选
+const filterTrendStatus = ref('')
+// 全量数据存储（用于筛选）
+const allData = ref<TradeDateQueryItem[]>([])
+// 全量数据加载状态
+const isLoadingAll = ref(false)
 
 // 初始化日期为今天
 onMounted(() => {
@@ -165,20 +184,85 @@ onMounted(() => {
   queryDate.value = today.toISOString().split('T')[0] as string
 })
 
+// 加载全量数据（分批次请求，每次100条）
+async function loadAllData() {
+  if (!queryDate.value || !responseData.value) return
+
+  const totalRecordsCount = responseData.value.total
+  if (totalRecordsCount === 0) return
+
+  isLoadingAll.value = true
+  const batchSize = 100
+  const totalPages = Math.ceil(totalRecordsCount / batchSize)
+  const allResults: TradeDateQueryItem[] = []
+
+  try {
+    for (let page = 1; page <= totalPages; page++) {
+      const res = await fetchTradeDateQuery({
+        trade_date: queryDate.value,
+        page: page,
+        page_size: batchSize,
+      })
+      allResults.push(...res.data)
+    }
+    allData.value = allResults
+  } catch (err) {
+    console.error('Failed to fetch all data for filtering:', err)
+  } finally {
+    isLoadingAll.value = false
+  }
+}
+
+// 监听筛选输入，当有筛选时请求全量数据
+watch([filterStockCode, filterTrendStatus], async ([newStockCode, newTrendStatus]) => {
+  const hasFilter = newStockCode.trim() || newTrendStatus
+
+  if (hasFilter && responseData.value && queryDate.value) {
+    // 有筛选值时，请求全量数据（如果还没有加载过）
+    if (allData.value.length === 0) {
+      await loadAllData()
+    }
+  } else {
+    // 清空筛选时，也清空全量数据缓存
+    allData.value = []
+  }
+})
+
 // 筛选后的数据
 const filteredData = computed(() => {
   if (!responseData.value || !responseData.value.data) return []
 
-  const data = responseData.value.data
-  if (!filterStockCode.value.trim()) {
-    return data
+  const hasFilter = filterStockCode.value.trim() || filterTrendStatus.value
+
+  // 如果有筛选条件且已加载全量数据，使用全量数据；否则使用当前页数据
+  let data = hasFilter && allData.value.length > 0
+    ? allData.value
+    : responseData.value.data
+
+  // 根据涨跌状态筛选
+  if (filterTrendStatus.value) {
+    data = data.filter(item => {
+      const trend = getPriceTrend(item)
+      if (filterTrendStatus.value === 'up') {
+        return trend.includes('上涨')
+      } else if (filterTrendStatus.value === 'down') {
+        return trend.includes('下跌')
+      } else if (filterTrendStatus.value === 'flat') {
+        return trend.includes('持平')
+      }
+      return true
+    })
   }
 
   // 根据股票代码筛选（支持模糊匹配）
-  const keyword = filterStockCode.value.trim().toLowerCase()
-  return data.filter(item =>
-    item.stock_code.toLowerCase().includes(keyword)
-  )
+  if (filterStockCode.value.trim()) {
+    const keyword = filterStockCode.value.trim().toLowerCase()
+    data = data.filter(item =>
+      item.stock_code.toLowerCase().includes(keyword)
+    )
+  }
+
+  return data
 })
 
 // 表格数据（应用筛选后的数据）
@@ -188,6 +272,14 @@ const tableData = computed(() => {
 
 // 筛选后的总记录数
 const filteredTotal = computed(() => {
+  const hasFilter = filterStockCode.value.trim() || filterTrendStatus.value
+
+  if (!hasFilter) {
+    // 无筛选时返回后端 total
+    return responseData.value?.total || 0
+  }
+
+  // 有筛选时返回筛选后的数量
   return filteredData.value.length
 })
 
@@ -235,6 +327,9 @@ async function handleQuery() {
 async function handleInitialQuery() {
   currentPage.value = 1
   currentPageSize.value = pageSize.value
+  filterStockCode.value = '' // 清空股票代码筛选
+  filterTrendStatus.value = '' // 清空涨跌状态筛选
+  allData.value = [] // 清空全量数据缓存
   await handleQuery()
 }
 
