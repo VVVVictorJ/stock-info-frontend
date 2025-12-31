@@ -58,12 +58,22 @@ const isCollapsed = ref(false)
 html, body, #app {
   height: 100%;
   margin: 0;
+  overflow: hidden;
 }
 </style>
 
 <style scoped>
+.common-layout {
+  height: 100vh;
+  overflow: hidden;
+}
 .layout-root {
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden;
+}
+.layout-root > .el-container {
+  height: calc(100% - 60px);
+  overflow: hidden;
 }
 .layout-header {
   display: flex;
@@ -71,15 +81,18 @@ html, body, #app {
   font-weight: 600;
   border-bottom: 1px solid var(--el-border-color);
   gap: 8px;
+  flex-shrink: 0;
 }
 .layout-aside {
   padding: 0;
   border-right: 1px solid var(--el-border-color);
+  overflow: hidden;
 }
 .layout-main {
   background-color: var(--el-fill-color-blank);
   padding: 0;
   overflow: hidden;
+  height: 100%;
 }
 .menu-vertical {
   height: 100%;

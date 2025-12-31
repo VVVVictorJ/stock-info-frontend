@@ -53,8 +53,8 @@
           <el-table
             :data="tableData"
             stripe
-            :height="tableHeight"
             style="width: 100%"
+            height="100%"
             v-loading="loading"
           >
           <el-table-column prop="stock_code" label="股票代码" min-width="100" sortable />
@@ -140,7 +140,6 @@ const errorMessage = ref('')
 const queryDate = ref('')
 const pageSize = ref(20)
 const responseData = ref<TradeDateQueryResponse | null>(null)
-const tableHeight = ref<number | string>('100%')
 
 // 前端分页相关
 const currentPage = ref(1)
@@ -150,20 +149,7 @@ const currentPageSize = ref(20)
 onMounted(() => {
   const today = new Date()
   queryDate.value = today.toISOString().split('T')[0] as string
-
-  // 计算表格高度
-  nextTick(() => {
-    calculateTableHeight()
-  })
-
-  window.addEventListener('resize', calculateTableHeight)
 })
-
-// 计算表格高度
-function calculateTableHeight() {
-  // 让Element Plus自动计算高度
-  tableHeight.value = '100%'
-}
 
 // 表格数据（后端分页，直接显示）
 const tableData = computed(() => {
@@ -357,6 +343,10 @@ function getPriceTrendClass(row: TradeDateQueryItem): string {
   background: linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%);
 }
 
+.result-panel :deep(.el-card__header) {
+  flex-shrink: 0;
+}
+
 .result-panel :deep(.el-card__body) {
   flex: 1;
   min-height: 0;
@@ -378,6 +368,8 @@ function getPriceTrendClass(row: TradeDateQueryItem): string {
   flex: 1;
   min-height: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .pagination-container {
@@ -390,20 +382,24 @@ function getPriceTrendClass(row: TradeDateQueryItem): string {
 }
 
 /* 表格样式 */
-:deep(.el-table) {
+.table-container :deep(.el-table) {
   flex: 1;
-  overflow: hidden;
-}
-
-:deep(.el-table__body-wrapper) {
-  overflow-y: auto;
   max-height: 100%;
 }
 
-:deep(.el-table__header-wrapper) {
-  position: sticky;
-  top: 0;
-  z-index: 10;
+.table-container :deep(.el-table__inner-wrapper) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.table-container :deep(.el-table__body-wrapper) {
+  flex: 1;
+  overflow-y: auto !important;
+}
+
+.table-container :deep(.el-table__header-wrapper) {
+  flex-shrink: 0;
 }
 
 /* 数值颜色 - 中国股市习惯：红涨绿跌 */
