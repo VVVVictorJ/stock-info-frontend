@@ -47,9 +47,9 @@
       >
         <template #sub-title>
           <div class="result-stats">
-            <span>总计: {{ currentResult.totalStocks || currentResult.totalSnapshots }}</span>
-            <span>成功: {{ currentResult.successCount || currentResult.analyzedCount }}</span>
-            <span>失败: {{ currentResult.failedCount || 0 }}</span>
+            <span>总计: {{ 'totalStocks' in currentResult ? currentResult.totalStocks : currentResult.totalSnapshots }}</span>
+            <span>成功: {{ 'successCount' in currentResult ? currentResult.successCount : currentResult.analyzedCount }}</span>
+            <span>失败: {{ 'failedCount' in currentResult ? currentResult.failedCount : currentResult.skippedCount }}</span>
           </div>
         </template>
         <template #extra>
