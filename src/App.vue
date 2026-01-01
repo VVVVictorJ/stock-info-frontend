@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRoute } from 'vue-router'
-import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar, DataAnalysis } from '@element-plus/icons-vue'
+import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar, DataAnalysis, Timer } from '@element-plus/icons-vue'
 
 const route = useRoute()
 const isCollapsed = ref(false)
@@ -25,6 +25,7 @@ const isCollapsed = ref(false)
             :default-active="route.path"
             router
             :collapse="isCollapsed"
+            :collapse-transition="false"
             class="menu-vertical"
           >
             <el-menu-item index="/">
@@ -46,6 +47,10 @@ const isCollapsed = ref(false)
             <el-menu-item index="/price-compare">
               <el-icon><DataAnalysis /></el-icon>
               <span>价格对比</span>
+            </el-menu-item>
+            <el-menu-item index="/scheduler-manage">
+              <el-icon><Timer /></el-icon>
+              <span>定时任务</span>
             </el-menu-item>
           </el-menu>
         </el-aside>
@@ -91,6 +96,7 @@ html, body, #app {
   padding: 0;
   border-right: 1px solid var(--el-border-color);
   overflow: hidden;
+  transition: width 0.3s ease;
 }
 .layout-main {
   background-color: var(--el-fill-color-blank);
