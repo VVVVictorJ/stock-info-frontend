@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, watch } from 'vue'
+import { ref, onMounted, watch, nextTick } from 'vue'
 import { useRoute } from 'vue-router'
 import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar, DataAnalysis, Timer, Document } from '@element-plus/icons-vue'
 
@@ -8,10 +8,73 @@ const route = useRoute()
 // 从 localStorage 读取侧边栏折叠状态，默认为 false（展开）
 const isCollapsed = ref(localStorage.getItem('sidebar-collapsed') === 'true')
 
+// 从 localStorage 读取子菜单展开状态
+const getOpenedMenus = (): string[] => {
+  const saved = localStorage.getItem('opened-submenus')
+  let result = saved ? JSON.parse(saved) : []
+  // 过滤掉无效的菜单项（只保留有效的子菜单）
+  const validSubMenus = ['catch-trend', 'query-data', 'history-query']
+  result = result.filter((item: string) => validSubMenus.includes(item))
+  return result
+}
+
+const openedMenus = ref<string[]>(getOpenedMenus())
+// 保存真实的展开状态（localStorage 的副本，不受 Element Plus 影响）
+const savedOpenedMenus = ref<string[]>([...openedMenus.value])
+// 菜单的 key，用于强制重新渲染
+const menuKey = ref(0)
+
 // 监听状态变化并保存到 localStorage
-watch(isCollapsed, (newValue) => {
+watch(isCollapsed, async (newValue, oldValue) => {
   localStorage.setItem('sidebar-collapsed', String(newValue))
+
+  // 当侧边栏从折叠状态展开时，恢复之前保存的菜单展开状态
+  if (oldValue === true && newValue === false) {
+    // 先恢复数组
+    openedMenus.value = [...savedOpenedMenus.value]
+
+    // 然后强制重新渲染菜单
+    await nextTick()
+    menuKey.value++
+  }
 })
+
+// 子菜单展开事件
+const handleMenuOpen = (index: string) => {
+  // 只处理 el-sub-menu（不处理 el-menu-item 如 "/"）
+  const validSubMenus = ['catch-trend', 'query-data', 'history-query']
+  if (!validSubMenus.includes(index)) {
+    return
+  }
+
+  if (!openedMenus.value.includes(index)) {
+    openedMenus.value.push(index)
+  }
+  if (!savedOpenedMenus.value.includes(index)) {
+    savedOpenedMenus.value.push(index)
+    localStorage.setItem('opened-submenus', JSON.stringify(savedOpenedMenus.value))
+  }
+}
+
+// 子菜单关闭事件
+const handleMenuClose = (index: string) => {
+  // 只在侧边栏展开状态时处理关闭事件
+  // 当侧边栏折叠时，忽略自动关闭事件
+  if (isCollapsed.value) {
+    return
+  }
+
+  const idx = openedMenus.value.indexOf(index)
+  if (idx > -1) {
+    openedMenus.value.splice(idx, 1)
+  }
+
+  const savedIdx = savedOpenedMenus.value.indexOf(index)
+  if (savedIdx > -1) {
+    savedOpenedMenus.value.splice(savedIdx, 1)
+    localStorage.setItem('opened-submenus', JSON.stringify(savedOpenedMenus.value))
+  }
+}
 </script>
 
 <template>
@@ -24,11 +87,15 @@ watch(isCollapsed, (newValue) => {
         <el-aside class="layout-aside" :width="isCollapsed ? '64px' : '200px'">
           <div class="aside-container">
             <el-menu
+              :key="menuKey"
               :default-active="route.path"
+              :default-openeds="openedMenus"
               router
               :collapse="isCollapsed"
               :collapse-transition="false"
               class="menu-vertical"
+              @open="handleMenuOpen"
+              @close="handleMenuClose"
             >
               <!-- 首页 -->
               <el-menu-item index="/">
