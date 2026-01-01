@@ -190,11 +190,11 @@ onMounted(async () => {
   await loadJobs()
   await loadHistory()
   await updateJobStatus() // 立即更新一次任务状态
-  startPolling()
+  connectWebSocket() // 建立 WebSocket 连接
 })
 
 onUnmounted(() => {
-  stopPolling()
+  disconnectWebSocket() // 清理 WebSocket 连接
 })
 
 // 加载任务列表
@@ -324,19 +324,56 @@ async function updateJobStatus() {
   }
 }
 
-// 轮询最新状态
-let pollingTimer: NodeJS.Timeout | null = null
+// WebSocket 连接
+let ws: WebSocket | null = null
 
-function startPolling() {
-  pollingTimer = setInterval(async () => {
-    await updateJobStatus()
-  }, 10000) // 每10秒轮询一次
+function connectWebSocket() {
+  const wsUrl = 'ws://localhost:8001/api/scheduler/ws'
+
+  ws = new WebSocket(wsUrl)
+
+  ws.onopen = () => {
+    console.log('WebSocket 连接已建立')
+  }
+
+  ws.onmessage = (event) => {
+    try {
+      const data = JSON.parse(event.data)
+
+      if (data.type === 'connected') {
+        console.log('WebSocket 连接成功')
+        return
+      }
+
+      // 更新任务状态
+      if (data.job_name && data.status) {
+        jobStatus[data.job_name] = data.status
+
+        // 如果任务完成，刷新历史记录
+        if (data.status !== 'running') {
+          loadHistory()
+        }
+      }
+    } catch (err) {
+      console.error('解析 WebSocket 消息失败:', err)
+    }
+  }
+
+  ws.onerror = (error) => {
+    console.error('WebSocket 错误:', error)
+  }
+
+  ws.onclose = () => {
+    console.log('WebSocket 连接已关闭')
+    // 3秒后重连
+    setTimeout(connectWebSocket, 3000)
+  }
 }
 
-function stopPolling() {
-  if (pollingTimer) {
-    clearInterval(pollingTimer)
-    pollingTimer = null
+function disconnectWebSocket() {
+  if (ws) {
+    ws.close()
+    ws = null
   }
 }
 </script>
