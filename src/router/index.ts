@@ -4,6 +4,7 @@ import CatchRaise from '@/views/CatchRaise.vue'
 import Stock from '@/views/Stock.vue'
 import TradeDateQuery from '@/views/TradeDateQuery.vue'
 import PriceCompare from '@/views/PriceCompare.vue'
+import SchedulerManage from '@/views/SchedulerManage.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -37,6 +38,12 @@ const router = createRouter({
       name: 'PriceCompare',
       component: PriceCompare,
       meta: { title: '价格对比' },
+    },
+    {
+      path: '/scheduler-manage',
+      name: 'SchedulerManage',
+      component: SchedulerManage,
+      meta: { title: '定时任务管理' },
     },
   ],
 })
