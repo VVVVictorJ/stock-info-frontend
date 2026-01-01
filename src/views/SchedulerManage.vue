@@ -187,6 +187,7 @@ const historyQuery = reactive({
 
 // 初始化
 onMounted(async () => {
+  isComponentMounted = true
   await loadJobs()
   await loadHistory()
   await updateJobStatus() // 立即更新一次任务状态
@@ -194,6 +195,7 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  isComponentMounted = false
   disconnectWebSocket() // 清理 WebSocket 连接
 })
 
@@ -326,51 +328,71 @@ async function updateJobStatus() {
 
 // WebSocket 连接
 let ws: WebSocket | null = null
+let reconnectTimer: number | null = null
+let isComponentMounted = false
 
 function connectWebSocket() {
   const wsUrl = 'ws://localhost:8001/api/scheduler/ws'
 
-  ws = new WebSocket(wsUrl)
+  try {
+    ws = new WebSocket(wsUrl)
 
-  ws.onopen = () => {
-    console.log('WebSocket 连接已建立')
-  }
-
-  ws.onmessage = (event) => {
-    try {
-      const data = JSON.parse(event.data)
-
-      if (data.type === 'connected') {
-        console.log('WebSocket 连接成功')
-        return
+    ws.onopen = () => {
+      console.log('WebSocket 连接已建立')
+      // 清除重连定时器（如果有）
+      if (reconnectTimer) {
+        clearTimeout(reconnectTimer)
+        reconnectTimer = null
       }
-
-      // 更新任务状态
-      if (data.job_name && data.status) {
-        jobStatus[data.job_name] = data.status
-
-        // 如果任务完成，刷新历史记录
-        if (data.status !== 'running') {
-          loadHistory()
-        }
-      }
-    } catch (err) {
-      console.error('解析 WebSocket 消息失败:', err)
     }
-  }
 
-  ws.onerror = (error) => {
-    console.error('WebSocket 错误:', error)
-  }
+    ws.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data)
 
-  ws.onclose = () => {
-    console.log('WebSocket 连接已关闭')
-    // 3秒后重连
-    setTimeout(connectWebSocket, 3000)
+        if (data.type === 'connected') {
+          console.log('WebSocket 连接成功')
+          return
+        }
+
+        // 更新任务状态
+        if (data.job_name && data.status) {
+          jobStatus[data.job_name] = data.status
+
+          // 如果任务完成，刷新历史记录
+          if (data.status !== 'running') {
+            loadHistory()
+          }
+        }
+      } catch (err) {
+        console.error('解析 WebSocket 消息失败:', err)
+      }
+    }
+
+    ws.onerror = (error) => {
+      console.error('WebSocket 错误:', error)
+    }
+
+    ws.onclose = () => {
+      console.log('WebSocket 连接已关闭')
+
+      // 只有组件仍然挂载时才重连
+      if (isComponentMounted) {
+        reconnectTimer = setTimeout(connectWebSocket, 3000)
+      }
+    }
+  } catch (error) {
+    console.error('WebSocket connection error:', error)
   }
 }
 
 function disconnectWebSocket() {
+  // 清除重连定时器
+  if (reconnectTimer) {
+    clearTimeout(reconnectTimer)
+    reconnectTimer = null
+  }
+
   if (ws) {
     ws.close()
     ws = null
