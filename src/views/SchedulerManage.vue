@@ -189,6 +189,7 @@ const historyQuery = reactive({
 onMounted(async () => {
   await loadJobs()
   await loadHistory()
+  await updateJobStatus() // 立即更新一次任务状态
   startPolling()
 })
 
@@ -308,22 +309,27 @@ function formatDuration(ms?: number): string {
   return `${(ms / 60000).toFixed(1)}min`
 }
 
+// 更新任务状态
+async function updateJobStatus() {
+  for (const job of jobs.value) {
+    try {
+      const res: any = await getLatestExecution(job.name)
+      const latest = res.data || res
+      if (latest) {
+        jobStatus[job.name] = latest.status
+      }
+    } catch (error) {
+      // 忽略错误
+    }
+  }
+}
+
 // 轮询最新状态
 let pollingTimer: NodeJS.Timeout | null = null
 
 function startPolling() {
   pollingTimer = setInterval(async () => {
-    for (const job of jobs.value) {
-      try {
-        const res: any = await getLatestExecution(job.name)
-        const latest = res.data || res
-        if (latest) {
-          jobStatus[job.name] = latest.status
-        }
-      } catch (error) {
-        // 忽略轮询错误
-      }
-    }
+    await updateJobStatus()
   }, 10000) // 每10秒轮询一次
 }
 
