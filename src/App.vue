@@ -11,48 +11,52 @@ const isCollapsed = ref(false)
   <div class="common-layout">
     <el-container class="layout-root">
       <el-header class="layout-header">
-        <el-button
-          class="collapse-btn"
-          link
-          :icon="isCollapsed ? Expand : Fold"
-          @click="isCollapsed = !isCollapsed"
-        />
         <span class="title">Stock Info</span>
       </el-header>
       <el-container>
         <el-aside class="layout-aside" :width="isCollapsed ? '64px' : '200px'">
-          <el-menu
-            :default-active="route.path"
-            router
-            :collapse="isCollapsed"
-            :collapse-transition="false"
-            class="menu-vertical"
-          >
-            <el-menu-item index="/">
-              <el-icon><HomeFilled /></el-icon>
-              <span>首页</span>
-            </el-menu-item>
-            <el-menu-item index="/catch-raise">
-              <el-icon><TrendCharts /></el-icon>
-              <span>涨跌捕捉</span>
-            </el-menu-item>
-            <el-menu-item index="/stock">
-              <el-icon><Search /></el-icon>
-              <span>单股查询</span>
-            </el-menu-item>
-            <el-menu-item index="/trade-date-query">
-              <el-icon><Calendar /></el-icon>
-              <span>交易日查询</span>
-            </el-menu-item>
-            <el-menu-item index="/price-compare">
-              <el-icon><DataAnalysis /></el-icon>
-              <span>价格对比</span>
-            </el-menu-item>
-            <el-menu-item index="/scheduler-manage">
-              <el-icon><Timer /></el-icon>
-              <span>定时任务</span>
-            </el-menu-item>
-          </el-menu>
+          <div class="aside-container">
+            <el-menu
+              :default-active="route.path"
+              router
+              :collapse="isCollapsed"
+              :collapse-transition="false"
+              class="menu-vertical"
+            >
+              <el-menu-item index="/">
+                <el-icon><HomeFilled /></el-icon>
+                <span>首页</span>
+              </el-menu-item>
+              <el-menu-item index="/catch-raise">
+                <el-icon><TrendCharts /></el-icon>
+                <span>涨跌捕捉</span>
+              </el-menu-item>
+              <el-menu-item index="/stock">
+                <el-icon><Search /></el-icon>
+                <span>单股查询</span>
+              </el-menu-item>
+              <el-menu-item index="/trade-date-query">
+                <el-icon><Calendar /></el-icon>
+                <span>交易日查询</span>
+              </el-menu-item>
+              <el-menu-item index="/price-compare">
+                <el-icon><DataAnalysis /></el-icon>
+                <span>价格对比</span>
+              </el-menu-item>
+              <el-menu-item index="/scheduler-manage">
+                <el-icon><Timer /></el-icon>
+                <span>定时任务</span>
+              </el-menu-item>
+            </el-menu>
+            <div class="collapse-btn-container">
+              <el-button
+                class="collapse-btn"
+                link
+                :icon="isCollapsed ? Expand : Fold"
+                @click="isCollapsed = !isCollapsed"
+              />
+            </div>
+          </div>
         </el-aside>
         <el-main class="layout-main">
           <router-view />
@@ -87,6 +91,7 @@ html, body, #app {
 .layout-header {
   display: flex;
   align-items: center;
+  justify-content: center;
   font-weight: 600;
   border-bottom: 1px solid var(--el-border-color);
   gap: 8px;
@@ -98,6 +103,12 @@ html, body, #app {
   overflow: hidden;
   transition: width 0.3s ease;
 }
+.aside-container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
 .layout-main {
   background-color: var(--el-fill-color-blank);
   padding: 0;
@@ -105,11 +116,21 @@ html, body, #app {
   height: 100%;
 }
 .menu-vertical {
-  height: 100%;
+  flex: 1;
   border-right: none;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.collapse-btn-container {
+  padding: 12px;
+  border-top: 1px solid var(--el-border-color);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-shrink: 0;
 }
 .collapse-btn {
-  margin-left: -4px;
+  font-size: 18px;
 }
 .title {
   user-select: none;
