@@ -157,6 +157,7 @@ import type {
   TriggerKlineResponse,
   TriggerProfitAnalysisResponse
 } from '@/types/scheduler'
+import { getWebSocketUrl } from '@/utils/websocket'
 
 // 任务列表
 const jobs = ref<JobInfo[]>([])
@@ -332,7 +333,7 @@ let reconnectTimer: number | null = null
 let isComponentMounted = false
 
 function connectWebSocket() {
-  const wsUrl = 'ws://localhost:8001/api/scheduler/ws'
+  const wsUrl = getWebSocketUrl('/api/scheduler/ws')
 
   try {
     ws = new WebSocket(wsUrl)
