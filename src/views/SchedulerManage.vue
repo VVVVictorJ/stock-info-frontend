@@ -1,6 +1,6 @@
 <template>
   <div class="scheduler-container">
-    <!-- 任务卡片区 -->
+    <!-- 定时任务列表 -->
     <el-card class="jobs-panel">
       <template #header>
         <div class="panel-header">
@@ -9,142 +9,170 @@
         </div>
       </template>
 
-      <div class="job-cards">
-        <div v-for="job in jobs" :key="job.name" class="job-card">
-          <div class="job-info">
-            <h3>{{ job.displayName }}</h3>
-            <p class="job-desc">{{ job.description }}</p>
-            <p class="job-schedule">🕒 执行时间: {{ job.schedule }}</p>
-            <div class="job-status">
-              <el-tag :type="getStatusType(job.name)" size="small">
-                {{ getStatusText(job.name) }}
-              </el-tag>
-              <span class="last-run-time">{{ getLastRunText(job.name) }}</span>
-            </div>
-          </div>
-          <div class="job-actions">
+      <el-table
+        :data="jobs"
+        highlight-current-row
+        @current-change="handleJobSelect"
+        style="width: 100%"
+        ref="jobTableRef"
+      >
+        <el-table-column prop="displayName" label="任务名称" width="160" />
+        <el-table-column prop="description" label="任务描述" min-width="200" show-overflow-tooltip />
+        <el-table-column prop="schedule" label="执行时间" width="200" />
+        <el-table-column label="执行状态" width="100">
+          <template #default="{ row }">
+            <el-tag :type="getStatusType(row.name)" size="small">
+              {{ getStatusText(row.name) }}
+            </el-tag>
+          </template>
+        </el-table-column>
+        <el-table-column label="上次完成时间" width="180">
+          <template #default="{ row }">
+            {{ formatLastCompletedTime(row.name) }}
+          </template>
+        </el-table-column>
+        <el-table-column label="当日执行" width="100" align="center">
+          <template #default="{ row }">
+            <el-tag v-if="getTodayRunCount(row.name) > 0" type="success" size="small">
+              {{ getTodayRunCount(row.name) }} 次
+            </el-tag>
+            <span v-else class="not-run-today">未执行</span>
+          </template>
+        </el-table-column>
+        <el-table-column label="操作" width="120" fixed="right">
+          <template #default="{ row }">
             <el-button
               type="primary"
-              @click="handleTrigger(job.name)"
-              :loading="triggering[job.name]"
+              size="small"
+              @click.stop="handleTrigger(row.name)"
+              :loading="triggering[row.name]"
               :disabled="isAnyJobRunning"
             >
-              手动触发
+              手动执行
             </el-button>
-          </div>
-        </div>
-      </div>
-    </el-card>
-
-    <!-- 执行结果展示区 -->
-    <el-card v-if="currentResult" class="result-panel">
-      <template #header>
-        <span>执行结果</span>
-      </template>
-
-      <el-result
-        :icon="currentResult.success ? 'success' : 'warning'"
-        :title="currentResult.message"
-      >
-        <template #sub-title>
-          <div class="result-stats">
-            <span>总计: {{ 'totalStocks' in currentResult ? currentResult.totalStocks : currentResult.totalSnapshots }}</span>
-            <span>成功: {{ 'successCount' in currentResult ? currentResult.successCount : currentResult.analyzedCount }}</span>
-            <span>失败: {{ 'failedCount' in currentResult ? currentResult.failedCount : currentResult.skippedCount }}</span>
-          </div>
-        </template>
-        <template #extra>
-          <el-button @click="showDetailDialog = true">查看详情</el-button>
-        </template>
-      </el-result>
+          </template>
+        </el-table-column>
+      </el-table>
     </el-card>
 
     <!-- 执行历史表格 -->
-    <el-card class="history-panel">
-      <template #header>
-        <div class="panel-header">
-          <span>执行历史</span>
-          <div class="filter-controls">
-            <el-select v-model="historyQuery.jobName" placeholder="任务类型" clearable @change="loadHistory">
-              <el-option label="全部" value="" />
-              <el-option label="K线导入" value="kline_import" />
-              <el-option label="盈利分析" value="profit_analysis" />
-              <el-option label="股票筛选(上午)" value="stock_filter_morning" />
-              <el-option label="股票筛选(下午)" value="stock_filter_afternoon" />
-            </el-select>
-            <el-select v-model="historyQuery.status" placeholder="状态" clearable @change="loadHistory">
-              <el-option label="全部" value="" />
-              <el-option label="成功" value="success" />
-              <el-option label="失败" value="failed" />
-              <el-option label="运行中" value="running" />
-            </el-select>
+    <div class="history-panel">
+      <el-card class="history-card">
+        <template #header>
+          <div class="panel-header">
+            <span>
+              执行历史
+              <el-tag v-if="selectedJob" type="info" size="small" style="margin-left: 10px">
+                {{ selectedJob.displayName }}
+              </el-tag>
+              <span v-else class="hint-text">（点击上方任务查看对应历史）</span>
+            </span>
+            <div class="filter-controls">
+              <el-select v-model="historyQuery.status" placeholder="状态" clearable @change="loadHistory" style="width: 120px">
+                <el-option label="全部" value="" />
+                <el-option label="成功" value="success" />
+                <el-option label="失败" value="failed" />
+                <el-option label="运行中" value="running" />
+              </el-select>
+            </div>
           </div>
+        </template>
+
+        <el-table 
+          :data="historyList" 
+          v-loading="historyLoading" 
+          stripe
+          :max-height="tableMaxHeight"
+          style="width: 100%"
+        >
+          <el-table-column prop="jobName" label="任务名称" min-width="150">
+            <template #default="{ row }">
+              {{ getJobDisplayName(row.jobName) }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="startedAt" label="开始时间" min-width="180" />
+          <el-table-column prop="completedAt" label="完成时间" min-width="180">
+            <template #default="{ row }">
+              {{ row.completedAt || '-' }}
+            </template>
+          </el-table-column>
+          <el-table-column prop="status" label="状态" min-width="100">
+            <template #default="{ row }">
+              <el-tag :type="getHistoryStatusType(row.status)" size="small">
+                {{ getStatusLabel(row.status) }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="totalCount" label="总数" min-width="80" align="right" />
+          <el-table-column prop="successCount" label="成功" min-width="80" align="right" />
+          <el-table-column prop="failedCount" label="失败" min-width="80" align="right" />
+          <el-table-column prop="durationMs" label="耗时" min-width="100">
+            <template #default="{ row }">
+              {{ formatDuration(row.durationMs) }}
+            </template>
+          </el-table-column>
+          <el-table-column label="操作" width="80" fixed="right">
+            <template #default="{ row }">
+              <el-button link type="primary" @click="viewHistoryDetail(row)">详情</el-button>
+            </template>
+          </el-table-column>
+        </el-table>
+
+        <div class="pagination">
+          <el-pagination
+            v-model:current-page="historyQuery.page"
+            v-model:page-size="historyQuery.pageSize"
+            :page-sizes="[10, 20, 50]"
+            :total="historyTotal"
+            layout="total, sizes, prev, pager, next"
+            @size-change="loadHistory"
+            @current-change="loadHistory"
+          />
         </div>
-      </template>
-
-      <el-table :data="historyList" v-loading="historyLoading" stripe>
-        <el-table-column prop="jobName" label="任务名称" width="150">
-          <template #default="{ row }">
-            {{ getJobDisplayName(row.jobName) }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="startedAt" label="开始时间" width="180" />
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="getHistoryStatusType(row.status)" size="small">
-              {{ row.status }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="totalCount" label="总数" width="100" align="right" />
-        <el-table-column prop="successCount" label="成功" width="100" align="right" />
-        <el-table-column prop="failedCount" label="失败" width="100" align="right" />
-        <el-table-column prop="durationMs" label="耗时" width="120">
-          <template #default="{ row }">
-            {{ formatDuration(row.durationMs) }}
-          </template>
-        </el-table-column>
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="{ row }">
-            <el-button link type="primary" @click="viewHistoryDetail(row.id)">详情</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
-
-      <div class="pagination">
-        <el-pagination
-          v-model:current-page="historyQuery.page"
-          v-model:page-size="historyQuery.pageSize"
-          :page-sizes="[10, 20, 50]"
-          :total="historyTotal"
-          layout="total, sizes, prev, pager, next"
-          @size-change="loadHistory"
-          @current-change="loadHistory"
-        />
-      </div>
-    </el-card>
+      </el-card>
+    </div>
 
     <!-- 详情弹窗 -->
     <el-dialog v-model="showDetailDialog" title="执行详情" width="80%">
-      <el-table :data="currentResult?.details" max-height="400" stripe>
-        <el-table-column prop="stockCode" label="股票代码" width="120" />
-        <el-table-column prop="stockName" label="股票名称" width="120" />
-        <el-table-column prop="importedCount" label="导入数量" width="120" />
-        <el-table-column prop="success" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="row.success ? 'success' : 'danger'" size="small">
-              {{ row.success ? '成功' : '失败' }}
-            </el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="error" label="错误信息" show-overflow-tooltip />
-      </el-table>
+      <el-descriptions :column="3" border v-if="currentHistoryDetail">
+        <el-descriptions-item label="任务名称">{{ getJobDisplayName(currentHistoryDetail.jobName) }}</el-descriptions-item>
+        <el-descriptions-item label="状态">
+          <el-tag :type="getHistoryStatusType(currentHistoryDetail.status)" size="small">
+            {{ getStatusLabel(currentHistoryDetail.status) }}
+          </el-tag>
+        </el-descriptions-item>
+        <el-descriptions-item label="耗时">{{ formatDuration(currentHistoryDetail.durationMs) }}</el-descriptions-item>
+        <el-descriptions-item label="开始时间">{{ currentHistoryDetail.startedAt }}</el-descriptions-item>
+        <el-descriptions-item label="完成时间">{{ currentHistoryDetail.completedAt || '-' }}</el-descriptions-item>
+        <el-descriptions-item label="统计">
+          总计 {{ currentHistoryDetail.totalCount }} / 成功 {{ currentHistoryDetail.successCount }} / 失败 {{ currentHistoryDetail.failedCount }}
+        </el-descriptions-item>
+        <el-descriptions-item label="错误信息" :span="3" v-if="currentHistoryDetail.errorMessage">
+          {{ currentHistoryDetail.errorMessage }}
+        </el-descriptions-item>
+      </el-descriptions>
+      <div v-if="currentHistoryDetail?.details" style="margin-top: 20px">
+        <h4>执行明细</h4>
+        <el-table :data="currentHistoryDetail.details" max-height="300" stripe>
+          <el-table-column prop="stockCode" label="股票代码" width="120" />
+          <el-table-column prop="stockName" label="股票名称" width="120" />
+          <el-table-column prop="importedCount" label="导入数量" width="100" />
+          <el-table-column prop="success" label="状态" width="80">
+            <template #default="{ row }">
+              <el-tag :type="row.success ? 'success' : 'danger'" size="small">
+                {{ row.success ? '成功' : '失败' }}
+              </el-tag>
+            </template>
+          </el-table-column>
+          <el-table-column prop="error" label="错误信息" show-overflow-tooltip />
+        </el-table>
+      </div>
     </el-dialog>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive, computed, onMounted, onUnmounted } from 'vue'
+import { ref, reactive, computed, onMounted, onUnmounted, nextTick } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import {
@@ -157,14 +185,14 @@ import {
 } from '@/api/scheduler'
 import type {
   JobInfo,
-  JobExecutionHistory,
-  TriggerKlineResponse,
-  TriggerProfitAnalysisResponse
+  JobExecutionHistory
 } from '@/types/scheduler'
 import { getWebSocketUrl } from '@/utils/websocket'
 
 // 任务列表
 const jobs = ref<JobInfo[]>([])
+const jobTableRef = ref()
+const selectedJob = ref<JobInfo | null>(null)
 
 // 触发状态
 const triggering = reactive<Record<string, boolean>>({})
@@ -172,19 +200,17 @@ const isAnyJobRunning = computed(() =>
   Object.values(triggering).some(v => v)
 )
 
-// 当前执行结果
-const currentResult = ref<TriggerKlineResponse | TriggerProfitAnalysisResponse | null>(null)
-const showDetailDialog = ref(false)
-
-// 任务状态
+// 任务状态和最新执行信息
 const jobStatus = reactive<Record<string, string>>({})
-// 任务最新执行信息
-const jobLatestRun = reactive<Record<string, { startedAt: string; status: string } | null>>({})
+const jobLatestRun = reactive<Record<string, { startedAt: string; completedAt?: string; status: string } | null>>({})
+// 今日执行次数
+const jobTodayCount = reactive<Record<string, number>>({})
 
 // 执行历史
 const historyLoading = ref(false)
 const historyList = ref<JobExecutionHistory[]>([])
 const historyTotal = ref(0)
+const tableMaxHeight = ref(300)
 const historyQuery = reactive({
   jobName: '',
   status: '',
@@ -192,18 +218,49 @@ const historyQuery = reactive({
   pageSize: 20
 })
 
+// 详情弹窗
+const showDetailDialog = ref(false)
+const currentHistoryDetail = ref<JobExecutionHistory | null>(null)
+
 // 初始化
+let isComponentMounted = false
+
+// 计算表格最大高度
+function calculateTableHeight() {
+  nextTick(() => {
+    const historyCard = document.querySelector('.history-card .el-card__body') as HTMLElement
+    if (historyCard) {
+      // 获取 el-card__body 的高度，减去 pagination 的高度（约 50px）和一些边距
+      const bodyHeight = historyCard.clientHeight
+      const newHeight = Math.max(200, bodyHeight - 70)
+      tableMaxHeight.value = newHeight
+    } else {
+      // fallback: 使用窗口高度计算
+      const windowHeight = window.innerHeight
+      const otherHeight = 450
+      const newHeight = Math.max(200, windowHeight - otherHeight)
+      tableMaxHeight.value = newHeight
+    }
+  })
+}
+
 onMounted(async () => {
   isComponentMounted = true
   await loadJobs()
   await loadHistory()
-  await updateJobStatus() // 立即更新一次任务状态
-  connectWebSocket() // 建立 WebSocket 连接
+  await updateJobStatus()
+  await loadTodayExecutionCounts()
+  connectWebSocket()
+  
+  // 计算表格高度
+  calculateTableHeight()
+  window.addEventListener('resize', calculateTableHeight)
 })
 
 onUnmounted(() => {
   isComponentMounted = false
-  disconnectWebSocket() // 清理 WebSocket 连接
+  disconnectWebSocket()
+  window.removeEventListener('resize', calculateTableHeight)
 })
 
 // 加载任务列表
@@ -219,8 +276,18 @@ async function loadJobs() {
 // 刷新任务
 async function refreshJobs() {
   await loadJobs()
+  await updateJobStatus()
+  await loadTodayExecutionCounts()
   await loadHistory()
   ElMessage.success('刷新成功')
+}
+
+// 选中任务变化
+function handleJobSelect(job: JobInfo | null) {
+  selectedJob.value = job
+  historyQuery.jobName = job?.name || ''
+  historyQuery.page = 1
+  loadHistory()
 }
 
 // 手动触发任务
@@ -231,7 +298,6 @@ async function handleTrigger(jobName: string) {
   }
 
   triggering[jobName] = true
-  currentResult.value = null
 
   try {
     let res: any
@@ -243,15 +309,17 @@ async function handleTrigger(jobName: string) {
       res = await triggerStockFilter()
     }
 
-    currentResult.value = res.data || res
+    const result = res.data || res
 
-    if (currentResult.value?.success) {
+    if (result?.success) {
       ElMessage.success('任务执行成功')
     } else {
       ElMessage.warning('任务执行完成，但有部分失败')
     }
 
-    // 刷新历史记录
+    // 刷新数据
+    await updateJobStatus()
+    await loadTodayExecutionCounts()
     await loadHistory()
   } catch (error: any) {
     ElMessage.error(error?.message || '任务执行失败')
@@ -278,6 +346,46 @@ function getStatusText(jobName: string): string {
   return '空闲'
 }
 
+// 获取状态标签
+function getStatusLabel(status: string): string {
+  if (status === 'running') return '运行中'
+  if (status === 'success') return '成功'
+  if (status === 'failed') return '失败'
+  if (status === 'partial') return '部分成功'
+  return status
+}
+
+// 格式化上次完成时间
+function formatLastCompletedTime(jobName: string): string {
+  const latestRun = jobLatestRun[jobName]
+  if (!latestRun) return '从未执行'
+  
+  const dateStr = latestRun.completedAt || latestRun.startedAt
+  if (!dateStr) return '-'
+  
+  const date = new Date(dateStr)
+  const now = new Date()
+  const isToday = date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  
+  const hours = date.getHours().toString().padStart(2, '0')
+  const minutes = date.getMinutes().toString().padStart(2, '0')
+  
+  if (isToday) {
+    return `今日 ${hours}:${minutes}`
+  } else {
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    return `${month}-${day} ${hours}:${minutes}`
+  }
+}
+
+// 获取今日执行次数
+function getTodayRunCount(jobName: string): number {
+  return jobTodayCount[jobName] || 0
+}
+
 // 加载执行历史
 async function loadHistory() {
   historyLoading.value = true
@@ -294,8 +402,9 @@ async function loadHistory() {
 }
 
 // 查看历史详情
-async function viewHistoryDetail(id: number) {
-  ElMessage.info('详情功能开发中...')
+function viewHistoryDetail(row: JobExecutionHistory) {
+  currentHistoryDetail.value = row
+  showDetailDialog.value = true
 }
 
 // 获取任务显示名称
@@ -309,6 +418,7 @@ function getHistoryStatusType(status: string): string {
   if (status === 'success') return 'success'
   if (status === 'failed') return 'danger'
   if (status === 'running') return 'warning'
+  if (status === 'partial') return 'warning'
   return 'info'
 }
 
@@ -330,6 +440,7 @@ async function updateJobStatus() {
         jobStatus[job.name] = latest.status
         jobLatestRun[job.name] = {
           startedAt: latest.startedAt,
+          completedAt: latest.completedAt,
           status: latest.status
         }
       } else {
@@ -341,44 +452,35 @@ async function updateJobStatus() {
   }
 }
 
-// 判断是否是今天
-function isToday(dateStr: string): boolean {
-  if (!dateStr) return false
-  const date = new Date(dateStr)
+// 加载今日执行次数
+async function loadTodayExecutionCounts() {
+  // 获取今天的日期字符串（用于过滤）
   const today = new Date()
-  return date.getFullYear() === today.getFullYear() &&
-    date.getMonth() === today.getMonth() &&
-    date.getDate() === today.getDate()
-}
-
-// 获取上次执行时间文本
-function getLastRunText(jobName: string): string {
-  const latestRun = jobLatestRun[jobName]
-  if (!latestRun) {
-    return '从未执行'
-  }
+  const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
   
-  if (isToday(latestRun.startedAt)) {
-    // 今天执行过，显示时间
-    const date = new Date(latestRun.startedAt)
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `今日 ${hours}:${minutes} 执行`
-  } else {
-    // 不是今天，显示日期
-    const date = new Date(latestRun.startedAt)
-    const month = (date.getMonth() + 1).toString().padStart(2, '0')
-    const day = date.getDate().toString().padStart(2, '0')
-    const hours = date.getHours().toString().padStart(2, '0')
-    const minutes = date.getMinutes().toString().padStart(2, '0')
-    return `${month}-${day} ${hours}:${minutes} · 今日未执行`
+  for (const job of jobs.value) {
+    try {
+      // 获取该任务的历史记录（第一页，较大的 pageSize）
+      const res: any = await getExecutionHistory({ jobName: job.name, page: 1, pageSize: 100 })
+      const data = res.data || res
+      const items: JobExecutionHistory[] = data.items || []
+      
+      // 统计今日执行次数
+      const todayCount = items.filter(item => {
+        if (!item.startedAt) return false
+        return item.startedAt.startsWith(todayStr)
+      }).length
+      
+      jobTodayCount[job.name] = todayCount
+    } catch (error) {
+      jobTodayCount[job.name] = 0
+    }
   }
 }
 
 // WebSocket 连接
 let ws: WebSocket | null = null
 let reconnectTimer: number | null = null
-let isComponentMounted = false
 
 function connectWebSocket() {
   const wsUrl = getWebSocketUrl('/api/scheduler/ws')
@@ -388,7 +490,6 @@ function connectWebSocket() {
 
     ws.onopen = () => {
       console.log('WebSocket 连接已建立')
-      // 清除重连定时器（如果有）
       if (reconnectTimer) {
         clearTimeout(reconnectTimer)
         reconnectTimer = null
@@ -408,8 +509,10 @@ function connectWebSocket() {
         if (data.job_name && data.status) {
           jobStatus[data.job_name] = data.status
 
-          // 如果任务完成，刷新历史记录
+          // 如果任务完成，刷新数据
           if (data.status !== 'running') {
+            updateJobStatus()
+            loadTodayExecutionCounts()
             loadHistory()
           }
         }
@@ -424,8 +527,6 @@ function connectWebSocket() {
 
     ws.onclose = () => {
       console.log('WebSocket 连接已关闭')
-
-      // 只有组件仍然挂载时才重连
       if (isComponentMounted) {
         reconnectTimer = setTimeout(connectWebSocket, 3000)
       }
@@ -436,7 +537,6 @@ function connectWebSocket() {
 }
 
 function disconnectWebSocket() {
-  // 清除重连定时器
   if (reconnectTimer) {
     clearTimeout(reconnectTimer)
     reconnectTimer = null
@@ -451,15 +551,55 @@ function disconnectWebSocket() {
 
 <style scoped>
 .scheduler-container {
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 40px);
   padding: 20px;
+  box-sizing: border-box;
   background: #f5f7fa;
-  min-height: 100vh;
+  gap: 20px;
+  overflow: hidden;
 }
 
-.jobs-panel,
-.result-panel,
+.jobs-panel {
+  flex-shrink: 0;
+}
+
 .history-panel {
-  margin-bottom: 20px;
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.history-card {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.history-card :deep(.el-card__header) {
+  flex-shrink: 0;
+}
+
+.history-card :deep(.el-card__body) {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  padding: 15px;
+}
+
+.history-card :deep(.el-table) {
+  flex: 1;
+}
+
+.history-card :deep(.el-table__inner-wrapper) {
+  height: 100%;
 }
 
 .panel-header {
@@ -468,104 +608,51 @@ function disconnectWebSocket() {
   align-items: center;
 }
 
+.hint-text {
+  font-size: 12px;
+  color: #909399;
+  margin-left: 10px;
+}
+
 .filter-controls {
   display: flex;
   gap: 10px;
 }
 
-.job-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-}
-
-.job-card {
-  padding: 20px;
-  border: 1px solid #e4e7ed;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  color: white;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  min-height: 180px;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-
-.job-card:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-}
-
-.job-info h3 {
-  margin: 0 0 10px 0;
-  font-size: 18px;
-}
-
-.job-desc {
-  margin: 5px 0;
-  opacity: 0.9;
-  font-size: 14px;
-}
-
-.job-schedule {
-  margin: 10px 0;
-  font-size: 13px;
-  opacity: 0.8;
-}
-
-.job-status {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-
-.last-run-time {
+.not-run-today {
+  color: #909399;
   font-size: 12px;
-  opacity: 0.85;
-  background: rgba(255, 255, 255, 0.2);
-  padding: 2px 8px;
-  border-radius: 4px;
-}
-
-.job-actions {
-  margin-top: 15px;
-}
-
-.job-actions .el-button {
-  width: 100%;
-}
-
-.result-stats {
-  display: flex;
-  gap: 20px;
-  justify-content: center;
-  font-size: 14px;
-}
-
-.result-stats span {
-  padding: 5px 10px;
-  background: #f5f7fa;
-  border-radius: 4px;
 }
 
 .pagination {
-  margin-top: 20px;
+  flex-shrink: 0;
+  margin-top: 15px;
   display: flex;
   justify-content: center;
 }
 
-@media (max-width: 768px) {
-  .job-cards {
-    grid-template-columns: 1fr;
-  }
+/* 表格行可点击样式 */
+.jobs-panel :deep(.el-table__row) {
+  cursor: pointer;
+}
 
-  .filter-controls {
-    flex-direction: column;
-    width: 100%;
+.jobs-panel :deep(.el-table__row:hover) {
+  background-color: #ecf5ff;
+}
+
+.jobs-panel :deep(.el-table__row.current-row) {
+  background-color: #ecf5ff;
+}
+
+/* 响应式 */
+@media (max-width: 1200px) {
+  .scheduler-container {
+    height: auto;
+    min-height: 100vh;
+  }
+  
+  .history-panel {
+    min-height: 400px;
   }
 }
 </style>
-
