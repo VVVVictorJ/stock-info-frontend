@@ -8,6 +8,10 @@ export const triggerKlineImport = () =>
 export const triggerProfitAnalysis = () =>
   request.post('/scheduler/trigger-profit-analysis')
 
+// 手动触发股票筛选任务
+export const triggerStockFilter = () =>
+  request.post('/scheduler/trigger-stock-filter')
+
 // 获取任务列表
 export const getJobList = () =>
   request.get('/scheduler/jobs')

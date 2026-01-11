@@ -19,6 +19,7 @@
               <el-tag :type="getStatusType(job.name)" size="small">
                 {{ getStatusText(job.name) }}
               </el-tag>
+              <span class="last-run-time">{{ getLastRunText(job.name) }}</span>
             </div>
           </div>
           <div class="job-actions">
@@ -68,6 +69,8 @@
               <el-option label="全部" value="" />
               <el-option label="K线导入" value="kline_import" />
               <el-option label="盈利分析" value="profit_analysis" />
+              <el-option label="股票筛选(上午)" value="stock_filter_morning" />
+              <el-option label="股票筛选(下午)" value="stock_filter_afternoon" />
             </el-select>
             <el-select v-model="historyQuery.status" placeholder="状态" clearable @change="loadHistory">
               <el-option label="全部" value="" />
@@ -148,6 +151,7 @@ import {
   getJobList,
   triggerKlineImport,
   triggerProfitAnalysis,
+  triggerStockFilter,
   getExecutionHistory,
   getLatestExecution
 } from '@/api/scheduler'
@@ -174,6 +178,8 @@ const showDetailDialog = ref(false)
 
 // 任务状态
 const jobStatus = reactive<Record<string, string>>({})
+// 任务最新执行信息
+const jobLatestRun = reactive<Record<string, { startedAt: string; status: string } | null>>({})
 
 // 执行历史
 const historyLoading = ref(false)
@@ -233,6 +239,8 @@ async function handleTrigger(jobName: string) {
       res = await triggerKlineImport()
     } else if (jobName === 'profit_analysis') {
       res = await triggerProfitAnalysis()
+    } else if (jobName === 'stock_filter_morning' || jobName === 'stock_filter_afternoon') {
+      res = await triggerStockFilter()
     }
 
     currentResult.value = res.data || res
@@ -320,10 +328,50 @@ async function updateJobStatus() {
       const latest = res.data || res
       if (latest) {
         jobStatus[job.name] = latest.status
+        jobLatestRun[job.name] = {
+          startedAt: latest.startedAt,
+          status: latest.status
+        }
+      } else {
+        jobLatestRun[job.name] = null
       }
     } catch (error) {
       // 忽略错误
     }
+  }
+}
+
+// 判断是否是今天
+function isToday(dateStr: string): boolean {
+  if (!dateStr) return false
+  const date = new Date(dateStr)
+  const today = new Date()
+  return date.getFullYear() === today.getFullYear() &&
+    date.getMonth() === today.getMonth() &&
+    date.getDate() === today.getDate()
+}
+
+// 获取上次执行时间文本
+function getLastRunText(jobName: string): string {
+  const latestRun = jobLatestRun[jobName]
+  if (!latestRun) {
+    return '从未执行'
+  }
+  
+  if (isToday(latestRun.startedAt)) {
+    // 今天执行过，显示时间
+    const date = new Date(latestRun.startedAt)
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `今日 ${hours}:${minutes} 执行`
+  } else {
+    // 不是今天，显示日期
+    const date = new Date(latestRun.startedAt)
+    const month = (date.getMonth() + 1).toString().padStart(2, '0')
+    const day = date.getDate().toString().padStart(2, '0')
+    const hours = date.getHours().toString().padStart(2, '0')
+    const minutes = date.getMinutes().toString().padStart(2, '0')
+    return `${month}-${day} ${hours}:${minutes} · 今日未执行`
   }
 }
 
@@ -468,6 +516,18 @@ function disconnectWebSocket() {
 
 .job-status {
   margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.last-run-time {
+  font-size: 12px;
+  opacity: 0.85;
+  background: rgba(255, 255, 255, 0.2);
+  padding: 2px 8px;
+  border-radius: 4px;
 }
 
 .job-actions {
