@@ -36,7 +36,7 @@
             <el-tag v-if="getTodayRunCount(row.name) > 0" type="success" size="small">
               {{ getTodayRunCount(row.name) }} 次
             </el-tag>
-            <span v-else class="not-run-today">未执行</span>
+            <el-tag v-else type="info" size="small">未执行</el-tag>
           </template>
         </el-table-column>
         <el-table-column label="操作" width="120" fixed="right">
@@ -331,6 +331,8 @@ async function handleTrigger(jobName: string) {
 // 获取任务状态类型
 function getStatusType(jobName: string): string {
   const status = jobStatus[jobName]
+  // 如果当日未执行，显示 info 类型
+  if (getTodayRunCount(jobName) === 0) return 'info'
   if (status === 'running') return 'warning'
   if (status === 'success') return 'success'
   if (status === 'failed') return 'danger'
@@ -340,6 +342,8 @@ function getStatusType(jobName: string): string {
 // 获取任务状态文本
 function getStatusText(jobName: string): string {
   const status = jobStatus[jobName]
+  // 如果当日未执行，显示"未执行"
+  if (getTodayRunCount(jobName) === 0) return '未执行'
   if (status === 'running') return '运行中'
   if (status === 'success') return '已完成'
   if (status === 'failed') return '失败'
