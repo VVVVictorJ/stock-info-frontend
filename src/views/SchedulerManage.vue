@@ -78,9 +78,9 @@
           </div>
         </template>
 
-        <el-table 
-          :data="historyList" 
-          v-loading="historyLoading" 
+        <el-table
+          :data="historyList"
+          v-loading="historyLoading"
           stripe
           :max-height="tableMaxHeight"
           style="width: 100%"
@@ -118,17 +118,14 @@
           </el-table-column>
         </el-table>
 
-        <div class="pagination">
-          <el-pagination
-            v-model:current-page="historyQuery.page"
-            v-model:page-size="historyQuery.pageSize"
-            :page-sizes="[10, 20, 50]"
-            :total="historyTotal"
-            layout="total, sizes, prev, pager, next"
-            @size-change="loadHistory"
-            @current-change="loadHistory"
-          />
-        </div>
+        <PaginationWrapper
+          v-model:current-page="historyQuery.page"
+          v-model:page-size="historyQuery.pageSize"
+          :total="historyTotal"
+          :page-sizes="[10, 20, 50]"
+          layout="total, sizes, prev, pager, next"
+          @change="loadHistory"
+        />
       </el-card>
     </div>
 
@@ -188,6 +185,8 @@ import type {
   JobExecutionHistory
 } from '@/types/scheduler'
 import { getWebSocketUrl } from '@/utils/websocket'
+import { formatDuration } from '@/utils/formatters'
+import PaginationWrapper from '@/component/common/PaginationWrapper.vue'
 
 // 任务列表
 const jobs = ref<JobInfo[]>([])
@@ -251,7 +250,7 @@ onMounted(async () => {
   await updateJobStatus()
   await loadTodayExecutionCounts()
   connectWebSocket()
-  
+
   // 计算表格高度
   calculateTableHeight()
   window.addEventListener('resize', calculateTableHeight)
@@ -363,19 +362,19 @@ function getStatusLabel(status: string): string {
 function formatLastCompletedTime(jobName: string): string {
   const latestRun = jobLatestRun[jobName]
   if (!latestRun) return '从未执行'
-  
+
   const dateStr = latestRun.completedAt || latestRun.startedAt
   if (!dateStr) return '-'
-  
+
   const date = new Date(dateStr)
   const now = new Date()
   const isToday = date.getFullYear() === now.getFullYear() &&
     date.getMonth() === now.getMonth() &&
     date.getDate() === now.getDate()
-  
+
   const hours = date.getHours().toString().padStart(2, '0')
   const minutes = date.getMinutes().toString().padStart(2, '0')
-  
+
   if (isToday) {
     return `今日 ${hours}:${minutes}`
   } else {
@@ -426,14 +425,6 @@ function getHistoryStatusType(status: string): string {
   return 'info'
 }
 
-// 格式化时长
-function formatDuration(ms?: number): string {
-  if (!ms) return '-'
-  if (ms < 1000) return `${ms}ms`
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-  return `${(ms / 60000).toFixed(1)}min`
-}
-
 // 更新任务状态
 async function updateJobStatus() {
   for (const job of jobs.value) {
@@ -461,20 +452,20 @@ async function loadTodayExecutionCounts() {
   // 获取今天的日期字符串（用于过滤）
   const today = new Date()
   const todayStr = `${today.getFullYear()}-${(today.getMonth() + 1).toString().padStart(2, '0')}-${today.getDate().toString().padStart(2, '0')}`
-  
+
   for (const job of jobs.value) {
     try {
       // 获取该任务的历史记录（第一页，较大的 pageSize）
       const res: any = await getExecutionHistory({ jobName: job.name, page: 1, pageSize: 100 })
       const data = res.data || res
       const items: JobExecutionHistory[] = data.items || []
-      
+
       // 统计今日执行次数
       const todayCount = items.filter(item => {
         if (!item.startedAt) return false
         return item.startedAt.startsWith(todayStr)
       }).length
-      
+
       jobTodayCount[job.name] = todayCount
     } catch (error) {
       jobTodayCount[job.name] = 0
@@ -628,13 +619,6 @@ function disconnectWebSocket() {
   font-size: 12px;
 }
 
-.pagination {
-  flex-shrink: 0;
-  margin-top: 15px;
-  display: flex;
-  justify-content: center;
-}
-
 /* 表格行可点击样式 */
 .jobs-panel :deep(.el-table__row) {
   cursor: pointer;
@@ -654,7 +638,7 @@ function disconnectWebSocket() {
     height: auto;
     min-height: 100vh;
   }
-  
+
   .history-panel {
     min-height: 400px;
   }

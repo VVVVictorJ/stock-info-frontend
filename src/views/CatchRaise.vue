@@ -1,7 +1,6 @@
-
 <template>
   <div class="stock-query">
-    <el-card class = "kzmk">
+    <el-card class="kzmk">
       <template #header>
         <div class="card-header">
           <span>实时查询符合涨停板条件的股票</span>
@@ -91,22 +90,10 @@
           </div>
         </div>
       </div>
-      <el-alert
-        v-if="errorMessage"
-        :title="errorMessage"
-        type="error"
-        show-icon
-        class="mb8"
-      />
-      <!-- 原卡片仅用于控制面板 -->
+      <ErrorAlert :message="errorMessage" />
     </el-card>
     <!-- 查询结果独立卡片 -->
-    <el-card class="mt12">
-      <template #header>
-        <div class="card-header">
-          <span>查询结果</span>
-        </div>
-      </template>
+    <ResultCard title="查询结果" class="mt12">
       <div class="result-controls">
         <el-switch v-model="dense" size="small" active-text="紧凑" />
         <el-divider direction="vertical" />
@@ -135,7 +122,7 @@
         :visible-keys="visibleKeys"
       />
       <div v-else class="placeholder">暂无数据</div>
-    </el-card>
+    </ResultCard>
   </div>
 </template>
 
@@ -144,6 +131,8 @@ import { ref, reactive, computed, onMounted } from 'vue'
 import { fetchCatchRaiseStockParam } from '@/api/stock'
 import type { CatchRaiseStockData } from '@/types/stock'
 import CatchRasieTable from '@/component/CatchRasieTable.vue'
+import ErrorAlert from '@/component/common/ErrorAlert.vue'
+import ResultCard from '@/component/common/ResultCard.vue'
 
 const loading = ref<boolean>(false)
 const errorMessage = ref<string>('')
@@ -357,9 +346,7 @@ function selectAllCols() {
 function clearAllCols() {
   visibleKeys.value = []
 }
-
 </script>
-
 
 <style scoped>
 .stock-query {
@@ -372,9 +359,6 @@ function clearAllCols() {
 }
 .code-input {
   max-width: 240px;
-}
-.mb8 {
-  margin-bottom: 8px;
 }
 .placeholder {
   color: var(--el-text-color-secondary);
@@ -452,5 +436,3 @@ function clearAllCols() {
   }
 }
 </style>
-
-

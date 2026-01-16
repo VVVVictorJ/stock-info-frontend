@@ -1,70 +1,54 @@
 <template>
   <div class="page-container">
     <!-- 查询面板 -->
-    <el-card class="query-panel">
-      <template #header>
-        <div class="card-header">
-          <span>查询条件</span>
-        </div>
-      </template>
-      <div class="query-form">
-        <el-date-picker
-          v-model="queryDate"
-          type="date"
-          placeholder="选择交易日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          class="date-picker"
-        />
-        <el-button type="primary" :loading="loading" @click="handleInitialQuery">
-          <el-icon><Search /></el-icon>
-          查询
-        </el-button>
-      </div>
-      <el-alert
-        v-if="errorMessage"
-        :title="errorMessage"
-        type="error"
-        show-icon
-        closable
-        @close="errorMessage = ''"
-        class="error-alert"
+    <QueryCard
+      title="查询条件"
+      :error-message="errorMessage"
+      :closable="true"
+      @clear-error="errorMessage = ''"
+    >
+      <el-date-picker
+        v-model="queryDate"
+        type="date"
+        placeholder="选择交易日期"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        class="date-picker"
       />
-    </el-card>
+      <el-button type="primary" :loading="loading" @click="handleInitialQuery">
+        <el-icon><Search /></el-icon>
+        查询
+      </el-button>
+    </QueryCard>
 
     <!-- 结果面板 -->
-    <el-card class="result-panel">
-      <template #header>
-        <div class="card-header">
-          <span>查询结果</span>
-          <div class="header-right">
-            <div class="filter-input">
-              <span class="filter-label">涨跌状态:</span>
-              <el-select
-                v-model="filterTrendStatus"
-                placeholder="全部"
-                clearable
-                style="width: 120px"
-              >
-                <el-option label="上涨" value="up" />
-                <el-option label="下跌" value="down" />
-                <el-option label="持平" value="flat" />
-              </el-select>
-            </div>
-            <div class="filter-input">
-              <span class="filter-label">股票代码:</span>
-              <el-input
-                v-model="filterStockCode"
-                placeholder="输入股票代码筛选"
-                clearable
-                style="width: 180px"
-              />
-            </div>
-            <span v-if="responseData" class="result-stats">
-              共 {{ filteredTotal }} 只股票
-            </span>
-          </div>
+    <ResultCard title="查询结果">
+      <template #header-right>
+        <div class="filter-input">
+          <span class="filter-label">涨跌状态:</span>
+          <el-select
+            v-model="filterTrendStatus"
+            placeholder="全部"
+            clearable
+            style="width: 120px"
+          >
+            <el-option label="上涨" value="up" />
+            <el-option label="下跌" value="down" />
+            <el-option label="持平" value="flat" />
+          </el-select>
         </div>
+        <div class="filter-input">
+          <span class="filter-label">股票代码:</span>
+          <el-input
+            v-model="filterStockCode"
+            placeholder="输入股票代码筛选"
+            clearable
+            style="width: 180px"
+          />
+        </div>
+        <span v-if="responseData" class="result-stats">
+          共 {{ filteredTotal }} 只股票
+        </span>
       </template>
 
       <div class="split-container">
@@ -162,15 +146,19 @@
           </div>
         </div>
       </div>
-    </el-card>
+    </ResultCard>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, nextTick, watch } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { fetchTradeDateQuery } from '@/api/stock'
 import type { TradeDateQueryResponse, TradeDateQueryItem } from '@/types/tradeDateQuery'
+import QueryCard from '@/component/common/QueryCard.vue'
+import ResultCard from '@/component/common/ResultCard.vue'
+import { formatNumber, formatDateTime } from '@/utils/formatters'
+import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
 
 const loading = ref(false)
 const errorMessage = ref('')
@@ -352,66 +340,6 @@ function handleRowClick(row: TradeDateQueryItem) {
 function getRowClassName({ row }: { row: TradeDateQueryItem }) {
   return row.stock_code === selectedStockCode.value ? 'selected-row' : ''
 }
-
-// 格式化数字
-function formatNumber(value: string | number | null | undefined): string {
-  if (value === null || value === undefined || value === '') return '-'
-  const num = Number(value)
-  if (isNaN(num)) return String(value)
-  return num.toLocaleString('zh-CN', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  })
-}
-
-// 格式化日期时间
-function formatDateTime(value: string): string {
-  if (!value) return '-'
-  try {
-    const date = new Date(value)
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-  } catch {
-    return value
-  }
-}
-
-// 获取涨跌幅样式类
-function getChangeClass(value: string | number): string {
-  const num = Number(value)
-  if (isNaN(num)) return ''
-  if (num > 0) return 'positive'
-  if (num < 0) return 'negative'
-  return ''
-}
-
-// 计算涨跌状态
-function getPriceTrend(row: TradeDateQueryItem): string {
-  if (!row.close_price) return '→ 持平'
-
-  const latestPrice = Number(row.latest_price)
-  const closePrice = Number(row.close_price)
-
-  if (isNaN(latestPrice) || isNaN(closePrice)) return '→ 持平'
-
-  if (latestPrice > closePrice) return '↓ 下跌'
-  if (latestPrice < closePrice) return '↑ 上涨'
-  return '→ 持平'
-}
-
-// 获取涨跌状态样式类
-function getPriceTrendClass(row: TradeDateQueryItem): string {
-  const trend = getPriceTrend(row)
-  if (trend.includes('上涨')) return 'trend-up'
-  if (trend.includes('下跌')) return 'trend-down'
-  return 'trend-flat'
-}
 </script>
 
 <style scoped>
@@ -423,38 +351,6 @@ function getPriceTrendClass(row: TradeDateQueryItem): string {
   box-sizing: border-box;
   overflow: hidden;
   background: linear-gradient(to bottom, #f5f7fa 0%, #e8eaf0 100%);
-}
-
-.query-panel {
-  flex-shrink: 0;
-  flex-basis: auto;
-  margin-bottom: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  overflow: visible;
-}
-
-.query-panel :deep(.el-card__header) {
-  background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.query-panel :deep(.el-card__body) {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 0 0 4px 4px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
 }
 
 .filter-input {
@@ -477,45 +373,8 @@ function getPriceTrendClass(row: TradeDateQueryItem): string {
   white-space: nowrap;
 }
 
-.query-form {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 .date-picker {
   width: 200px;
-}
-
-.page-size-select {
-  width: 140px;
-}
-
-.error-alert {
-  margin-top: 12px;
-}
-
-.result-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%);
-}
-
-.result-panel :deep(.el-card__header) {
-  flex-shrink: 0;
-}
-
-.result-panel :deep(.el-card__body) {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 12px;
 }
 
 /* 左右分栏容器 */
@@ -678,15 +537,8 @@ function getPriceTrendClass(row: TradeDateQueryItem): string {
 
 /* 响应式 */
 @media (max-width: 768px) {
-  .query-form {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .date-picker,
-  .page-size-select {
+  .date-picker {
     width: 100%;
   }
 }
 </style>
-

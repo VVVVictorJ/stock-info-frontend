@@ -1,67 +1,51 @@
 <template>
   <div class="page-container">
     <!-- 查询面板 -->
-    <el-card class="query-panel">
-      <template #header>
-        <div class="card-header">
-          <span>查询条件</span>
-        </div>
-      </template>
-      <div class="query-form">
-        <el-date-picker
-          v-model="queryDate"
-          type="date"
-          placeholder="选择交易日期"
-          format="YYYY-MM-DD"
-          value-format="YYYY-MM-DD"
-          class="date-picker"
-        />
-        <el-select v-model="pageSize" placeholder="每页条数" class="page-size-select">
-          <el-option label="20条/页" :value="20" />
-          <el-option label="50条/页" :value="50" />
-          <el-option label="100条/页" :value="100" />
-        </el-select>
-        <el-button type="primary" :loading="loading" @click="handleInitialQuery">
-          <el-icon><Search /></el-icon>
-          查询
-        </el-button>
-      </div>
-      <el-alert
-        v-if="errorMessage"
-        :title="errorMessage"
-        type="error"
-        show-icon
-        closable
-        @close="errorMessage = ''"
-        class="error-alert"
+    <QueryCard
+      title="查询条件"
+      :error-message="errorMessage"
+      :closable="true"
+      @clear-error="errorMessage = ''"
+    >
+      <el-date-picker
+        v-model="queryDate"
+        type="date"
+        placeholder="选择交易日期"
+        format="YYYY-MM-DD"
+        value-format="YYYY-MM-DD"
+        class="date-picker"
       />
-    </el-card>
+      <el-select v-model="pageSize" placeholder="每页条数" class="page-size-select">
+        <el-option label="20条/页" :value="20" />
+        <el-option label="50条/页" :value="50" />
+        <el-option label="100条/页" :value="100" />
+      </el-select>
+      <el-button type="primary" :loading="loading" @click="handleInitialQuery">
+        <el-icon><Search /></el-icon>
+        查询
+      </el-button>
+    </QueryCard>
 
     <!-- 结果面板 -->
-    <el-card class="result-panel">
-      <template #header>
-        <div class="card-header">
-          <div class="header-left">
-            <span>价格对比分析</span>
-            <span v-if="responseData" class="date-info">
-              快照日期: {{ responseData.snapshot_date || '-' }} / 交易日期: {{ responseData.trade_date || '-' }}
-            </span>
-          </div>
-          <div class="header-right">
-            <div class="filter-input">
-              <span class="filter-label">股票代码:</span>
-              <el-input
-                v-model="filterStockCode"
-                placeholder="输入股票代码筛选"
-                clearable
-                style="width: 180px"
-              />
-            </div>
-            <span v-if="responseData" class="result-stats">
-              共 {{ filteredTotal }} 条，当前第 {{ currentPage }}/{{ totalPages }} 页
-            </span>
-          </div>
+    <ResultCard title="价格对比分析">
+      <template #header-info>
+        <span v-if="responseData" class="date-info">
+          快照日期: {{ responseData.snapshot_date || '-' }} / 交易日期: {{ responseData.trade_date || '-' }}
+        </span>
+      </template>
+      <template #header-right>
+        <div class="filter-input">
+          <span class="filter-label">股票代码:</span>
+          <el-input
+            v-model="filterStockCode"
+            placeholder="输入股票代码筛选"
+            clearable
+            style="width: 180px"
+          />
         </div>
+        <span v-if="responseData" class="result-stats">
+          共 {{ filteredTotal }} 条，当前第 {{ currentPage }}/{{ totalPages }} 页
+        </span>
       </template>
 
       <div class="table-wrapper">
@@ -73,61 +57,58 @@
             height="100%"
             v-loading="loading"
           >
-          <el-table-column prop="stock_code" label="股票代码" min-width="100" sortable />
-          <el-table-column prop="stock_name" label="股票名称" min-width="100" sortable />
-          <el-table-column prop="grade" label="盈利等级" min-width="100" sortable align="center">
-            <template #default="{ row }">
-              <span :class="getGradeClass(row.grade)">
-                {{ row.grade }}
-              </span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="latest_price" label="最新价" min-width="100" sortable align="right">
-            <template #default="{ row }">
-              {{ formatNumber(row.latest_price) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="open_price" label="开盘价" min-width="100" sortable align="right">
-            <template #default="{ row }">
-              {{ formatNumber(row.open_price) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="high_price" label="最高价" min-width="100" sortable align="right">
-            <template #default="{ row }">
-              {{ formatNumber(row.high_price) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="low_price" label="最低价" min-width="100" sortable align="right">
-            <template #default="{ row }">
-              {{ formatNumber(row.low_price) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="close_price" label="收盘价" min-width="100" sortable align="right">
-            <template #default="{ row }">
-              {{ formatNumber(row.close_price) }}
-            </template>
-          </el-table-column>
-          <el-table-column prop="created_at" label="创建时间" min-width="180" sortable>
-            <template #default="{ row }">
-              {{ formatDateTime(row.created_at) }}
-            </template>
-          </el-table-column>
-        </el-table>
+            <el-table-column prop="stock_code" label="股票代码" min-width="100" sortable />
+            <el-table-column prop="stock_name" label="股票名称" min-width="100" sortable />
+            <el-table-column prop="grade" label="盈利等级" min-width="100" sortable align="center">
+              <template #default="{ row }">
+                <span :class="getGradeClass(row.grade)">
+                  {{ row.grade }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="latest_price" label="最新价" min-width="100" sortable align="right">
+              <template #default="{ row }">
+                {{ formatNumber(row.latest_price) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="open_price" label="开盘价" min-width="100" sortable align="right">
+              <template #default="{ row }">
+                {{ formatNumber(row.open_price) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="high_price" label="最高价" min-width="100" sortable align="right">
+              <template #default="{ row }">
+                {{ formatNumber(row.high_price) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="low_price" label="最低价" min-width="100" sortable align="right">
+              <template #default="{ row }">
+                {{ formatNumber(row.low_price) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="close_price" label="收盘价" min-width="100" sortable align="right">
+              <template #default="{ row }">
+                {{ formatNumber(row.close_price) }}
+              </template>
+            </el-table-column>
+            <el-table-column prop="created_at" label="创建时间" min-width="180" sortable>
+              <template #default="{ row }">
+                {{ formatDateTime(row.created_at) }}
+              </template>
+            </el-table-column>
+          </el-table>
         </div>
 
-        <div class="pagination-container">
-          <el-pagination
-            v-model:current-page="currentPage"
-            v-model:page-size="currentPageSize"
-            :page-sizes="[20, 50, 100]"
-            :total="totalRecords"
-            layout="total, sizes, prev, pager, next, jumper"
-            @size-change="handleSizeChange"
-            @current-change="handleCurrentChange"
-          />
-        </div>
+        <PaginationWrapper
+          v-model:current-page="currentPage"
+          v-model:page-size="currentPageSize"
+          :total="totalRecords"
+          :page-sizes="[20, 50, 100]"
+          @size-change="handleSizeChange"
+          @current-change="handleCurrentChange"
+        />
       </div>
-    </el-card>
+    </ResultCard>
   </div>
 </template>
 
@@ -136,6 +117,11 @@ import { ref, computed, onMounted, watch } from 'vue'
 import { Search } from '@element-plus/icons-vue'
 import { fetchPriceCompare } from '@/api/stock'
 import type { PriceCompareResponse, PriceCompareItem } from '@/types/priceCompare'
+import QueryCard from '@/component/common/QueryCard.vue'
+import ResultCard from '@/component/common/ResultCard.vue'
+import PaginationWrapper from '@/component/common/PaginationWrapper.vue'
+import { formatNumber, formatDateTime } from '@/utils/formatters'
+import { getGradeClass } from '@/utils/priceStyles'
 
 const loading = ref(false)
 const errorMessage = ref('')
@@ -284,38 +270,6 @@ async function handleCurrentChange(page: number) {
   currentPage.value = page
   await handleQuery()
 }
-
-// 数值格式化
-function formatNumber(value: string | number): string {
-  const num = Number(value)
-  if (isNaN(num)) return '-'
-  return num.toFixed(2)
-}
-
-// 日期时间格式化
-function formatDateTime(value: string): string {
-  if (!value) return '-'
-  try {
-    const date = new Date(value)
-    return date.toLocaleString('zh-CN', {
-      year: 'numeric',
-      month: '2-digit',
-      day: '2-digit',
-      hour: '2-digit',
-      minute: '2-digit',
-      second: '2-digit',
-    })
-  } catch {
-    return value
-  }
-}
-
-// 盈利等级样式
-function getGradeClass(grade: string): string {
-  if (grade === 'A') return 'grade-a'
-  if (grade === 'B') return 'grade-b'
-  return 'grade-c'
-}
 </script>
 
 <style scoped>
@@ -329,38 +283,6 @@ function getGradeClass(grade: string): string {
   background: linear-gradient(to bottom, #f5f7fa 0%, #e8eaf0 100%);
 }
 
-.query-panel {
-  flex-shrink: 0;
-  flex-basis: auto;
-  margin-bottom: 12px;
-  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-  overflow: visible;
-}
-
-.query-panel :deep(.el-card__header) {
-  background: transparent;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  color: white;
-}
-
-.query-panel :deep(.el-card__body) {
-  background: rgba(255, 255, 255, 0.95);
-  border-radius: 0 0 4px 4px;
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-weight: 600;
-}
-
-.header-left {
-  display: flex;
-  align-items: center;
-  gap: 20px;
-}
-
 .date-info {
   font-size: 12px;
   font-weight: normal;
@@ -368,12 +290,6 @@ function getGradeClass(grade: string): string {
   background: var(--el-fill-color-light);
   padding: 4px 12px;
   border-radius: 4px;
-}
-
-.header-right {
-  display: flex;
-  align-items: center;
-  gap: 20px;
 }
 
 .filter-input {
@@ -396,45 +312,12 @@ function getGradeClass(grade: string): string {
   white-space: nowrap;
 }
 
-.query-form {
-  display: flex;
-  gap: 12px;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
 .date-picker {
   width: 200px;
 }
 
 .page-size-select {
   width: 140px;
-}
-
-.error-alert {
-  margin-top: 12px;
-}
-
-.result-panel {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  background: linear-gradient(to bottom, #ffffff 0%, #fafbfc 100%);
-}
-
-.result-panel :deep(.el-card__header) {
-  flex-shrink: 0;
-}
-
-.result-panel :deep(.el-card__body) {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-  padding: 12px;
 }
 
 .table-wrapper {
@@ -451,15 +334,6 @@ function getGradeClass(grade: string): string {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-}
-
-.pagination-container {
-  flex-shrink: 0;
-  padding: 12px 0;
-  display: flex;
-  justify-content: center;
-  background: white;
-  z-index: 10;
 }
 
 /* 表格样式 */
@@ -506,4 +380,3 @@ function getGradeClass(grade: string): string {
   background: linear-gradient(to right, #f5f7fa 0%, #fff 100%) !important;
 }
 </style>
-

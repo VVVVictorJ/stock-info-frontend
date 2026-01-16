@@ -1,5 +1,3 @@
-
-
 <template>
   <div class="stock-query">
     <el-card>
@@ -18,13 +16,7 @@
         />
         <el-button type="primary" :loading="loading" @click="onSearch">查询</el-button>
       </div>
-      <el-alert
-        v-if="errorMessage"
-        :title="errorMessage"
-        type="error"
-        show-icon
-        class="mb8"
-      />
+      <ErrorAlert :message="errorMessage" />
       <el-table
         v-if="tableData.length"
         :data="tableData"
@@ -62,6 +54,9 @@
 import { ref, computed, onMounted } from 'vue'
 import { fetchSingleStock } from '@/api/stock'
 import type { SingleStockData } from '@/types/stock'
+import ErrorAlert from '@/component/common/ErrorAlert.vue'
+import { formatThousand } from '@/utils/formatters'
+import { isPnField, getPnClass } from '@/utils/priceStyles'
 
 const stockCode = ref<string>('600519')
 const loading = ref<boolean>(false)
@@ -78,8 +73,6 @@ const fieldDefs = [
   { key: 'f191', label: '委比' },
   { key: 'f137', label: '主力净流入' },
 ] as const
-
-type FieldKey = typeof fieldDefs[number]['key']
 
 const tableData = computed(() => {
   if (!stockData.value) return []
@@ -108,24 +101,6 @@ async function onSearch() {
 onMounted(() => {
   onSearch()
 })
-
-function isPnField(key: string): boolean {
-  return key === 'f170' || key === 'f191' || key === 'f137' || key === 'f50' || key === 'f168'
-}
-
-function getPnClass(value: unknown): string {
-  const num = typeof value === 'number' ? value : Number(value)
-  if (Number.isNaN(num)) return ''
-  if (num > 0) return 'pn-pos'
-  if (num < 0) return 'pn-neg'
-  return ''
-}
-
-function formatThousand(value: unknown): string {
-  const num = typeof value === 'number' ? value : Number(value)
-  if (Number.isNaN(num)) return String(value ?? '')
-  return new Intl.NumberFormat('en-US').format(num)
-}
 </script>
 
 <style scoped>
@@ -140,9 +115,6 @@ function formatThousand(value: unknown): string {
 .code-input {
   max-width: 240px;
 }
-.mb8 {
-  margin-bottom: 8px;
-}
 .placeholder {
   color: var(--el-text-color-secondary);
 }
@@ -153,5 +125,3 @@ function formatThousand(value: unknown): string {
   color: var(--el-color-success);
 }
 </style>
-
-
