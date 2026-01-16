@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, onMounted, watch, nextTick } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar, DataAnalysis, Timer, Document } from '@element-plus/icons-vue'
 
 const route = useRoute()
+const router = useRouter()
 
 // 从 localStorage 读取侧边栏折叠状态，默认为 false（展开）
 const isCollapsed = ref(localStorage.getItem('sidebar-collapsed') === 'true')
@@ -75,6 +76,29 @@ const handleMenuClose = (index: string) => {
     localStorage.setItem('opened-submenus', JSON.stringify(savedOpenedMenus.value))
   }
 }
+
+onMounted(async () => {
+  const routes = router.getRoutes().map((r) => ({
+    name: r.name ?? null,
+    path: r.path,
+  }))
+  const hasSchedulerRoute = routes.some((r) => r.name === 'SchedulerManage' || r.path === '/scheduler-manage')
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/0ee4215d-6943-4299-947e-317aabad4cec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/App.vue:routes_snapshot',message:'routes snapshot',data:{routeCount:routes.length,hasSchedulerRoute,routes},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2-wrong-branch-build'})}).catch(()=>{});
+  // #endregion
+
+  await nextTick()
+  const menuLabels = Array.from(document.querySelectorAll('.el-menu-item span'))
+    .map((el) => el.textContent?.trim())
+    .filter((value): value is string => Boolean(value))
+  const menuTitles = Array.from(document.querySelectorAll('.el-sub-menu__title span'))
+    .map((el) => el.textContent?.trim())
+    .filter((value): value is string => Boolean(value))
+  const hasSchedulerMenu = menuLabels.includes('定时任务')
+  // #region agent log
+  fetch('http://127.0.0.1:7242/ingest/0ee4215d-6943-4299-947e-317aabad4cec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/App.vue:menu_snapshot',message:'menu snapshot',data:{menuLabels,menuTitles,hasSchedulerMenu,isCollapsed:isCollapsed.value},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4-menu-hidden'})}).catch(()=>{});
+  // #endregion
+})
 </script>
 
 <template>
