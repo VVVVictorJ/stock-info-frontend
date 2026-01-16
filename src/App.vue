@@ -1,10 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, watch, nextTick } from 'vue'
+import { useRoute } from 'vue-router'
 import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar, DataAnalysis, Timer, Document } from '@element-plus/icons-vue'
 
 const route = useRoute()
-const router = useRouter()
 
 // 从 localStorage 读取侧边栏折叠状态，默认为 false（展开）
 const isCollapsed = ref(localStorage.getItem('sidebar-collapsed') === 'true')
@@ -76,29 +75,6 @@ const handleMenuClose = (index: string) => {
     localStorage.setItem('opened-submenus', JSON.stringify(savedOpenedMenus.value))
   }
 }
-
-onMounted(async () => {
-  const routes = router.getRoutes().map((r) => ({
-    name: r.name ?? null,
-    path: r.path,
-  }))
-  const hasSchedulerRoute = routes.some((r) => r.name === 'SchedulerManage' || r.path === '/scheduler-manage')
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0ee4215d-6943-4299-947e-317aabad4cec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/App.vue:routes_snapshot',message:'routes snapshot',data:{routeCount:routes.length,hasSchedulerRoute,routes},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H2-wrong-branch-build'})}).catch(()=>{});
-  // #endregion
-
-  await nextTick()
-  const menuLabels = Array.from(document.querySelectorAll('.el-menu-item span'))
-    .map((el) => el.textContent?.trim())
-    .filter((value): value is string => Boolean(value))
-  const menuTitles = Array.from(document.querySelectorAll('.el-sub-menu__title span'))
-    .map((el) => el.textContent?.trim())
-    .filter((value): value is string => Boolean(value))
-  const hasSchedulerMenu = menuLabels.includes('定时任务')
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/0ee4215d-6943-4299-947e-317aabad4cec',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'src/App.vue:menu_snapshot',message:'menu snapshot',data:{menuLabels,menuTitles,hasSchedulerMenu,isCollapsed:isCollapsed.value},timestamp:Date.now(),sessionId:'debug-session',runId:'pre-fix',hypothesisId:'H4-menu-hidden'})}).catch(()=>{});
-  // #endregion
-})
 </script>
 
 <template>
@@ -184,7 +160,14 @@ onMounted(async () => {
           </div>
         </el-aside>
         <el-main class="layout-main">
-          <router-view />
+          <div class="main-content">
+            <router-view />
+          </div>
+          <footer class="layout-footer">
+            <div class="footer-content">
+              <span>copyright@2026 · v{{ __APP_VERSION__ }}</span>
+            </div>
+          </footer>
         </el-main>
       </el-container>
     </el-container>
@@ -239,6 +222,28 @@ html, body, #app {
   padding: 0;
   overflow: hidden;
   height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+.main-content {
+  flex: 1;
+  overflow: auto;
+}
+.layout-footer {
+  border-top: 1px solid var(--el-border-color);
+  background: #fff;
+  padding: 10px 16px;
+  flex-shrink: 0;
+}
+.footer-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: #909399;
+}
+.footer-version {
+  font-variant-numeric: tabular-nums;
 }
 .menu-vertical {
   flex: 1;
