@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
-import CatchRaise from '@/views/CatchRaise.vue'
+import CatchRaise from '@/views/CatchRaise/index.vue'
 import Stock from '@/views/Stock.vue'
 import TradeDateQuery from '@/views/TradeDateQuery.vue'
 import PriceCompare from '@/views/PriceCompare.vue'
