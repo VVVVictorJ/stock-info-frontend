@@ -2,9 +2,9 @@ import { createRouter, createWebHistory } from 'vue-router'
 import Home from '@/views/Home.vue'
 import CatchRaise from '@/views/CatchRaise/index.vue'
 import Stock from '@/views/Stock.vue'
-import TradeDateQuery from '@/views/TradeDateQuery.vue'
-import PriceCompare from '@/views/PriceCompare.vue'
-import SchedulerManage from '@/views/SchedulerManage.vue'
+import TradeDateQuery from '@/views/TradeDateQuery/index.vue'
+import PriceCompare from '@/views/PriceCompare/index.vue'
+import SchedulerManage from '@/views/SchedulerManage/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
