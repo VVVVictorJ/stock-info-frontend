@@ -8,7 +8,7 @@
 .layout-header {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: left;
   font-weight: 600;
   border-bottom: 1px solid var(--el-border-color);
   gap: 8px;

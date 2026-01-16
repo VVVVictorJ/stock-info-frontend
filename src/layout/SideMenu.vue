@@ -1,7 +1,126 @@
+<template>
+  <el-aside class="layout-aside" :width="isCollapsed ? '64px' : '200px'">
+    <div class="aside-container">
+      <el-menu
+        :key="menuKey"
+        :default-active="route.path"
+        :default-openeds="openedMenus"
+        router
+        :collapse="isCollapsed"
+        :collapse-transition="false"
+        class="menu-vertical"
+        @open="handleMenuOpen"
+        @close="handleMenuClose"
+      >
+        <template v-for="item in menuConfig" :key="item.index">
+          <!-- 有子菜单：渲染 el-sub-menu -->
+          <el-sub-menu v-if="item.children" :index="item.index">
+            <template #title>
+              <el-icon><component :is="iconMap[item.icon]" /></el-icon>
+              <span>{{ item.title }}</span>
+            </template>
+            <el-menu-item
+              v-for="child in item.children"
+              :key="child.index"
+              :index="child.index"
+            >
+              <el-icon><component :is="iconMap[child.icon]" /></el-icon>
+              <span>{{ child.title }}</span>
+            </el-menu-item>
+          </el-sub-menu>
+          <!-- 无子菜单：渲染 el-menu-item -->
+          <el-menu-item v-else :index="item.index">
+            <el-icon><component :is="iconMap[item.icon]" /></el-icon>
+            <span>{{ item.title }}</span>
+          </el-menu-item>
+        </template>
+      </el-menu>
+      <div class="collapse-btn-container">
+        <el-button
+          class="collapse-btn"
+          link
+          :icon="isCollapsed ? Expand : Fold"
+          @click="isCollapsed = !isCollapsed"
+        />
+      </div>
+    </div>
+  </el-aside>
+</template>
+
 <script setup lang="ts">
-import { ref, watch, nextTick } from 'vue'
+import { ref, watch, nextTick, computed, type Component } from 'vue'
 import { useRoute } from 'vue-router'
-import { HomeFilled, TrendCharts, Fold, Expand, Search, Calendar, DataAnalysis, Timer, Document } from '@element-plus/icons-vue'
+import {
+  HomeFilled,
+  TrendCharts,
+  Fold,
+  Expand,
+  Search,
+  Calendar,
+  DataAnalysis,
+  Timer,
+  Document
+} from '@element-plus/icons-vue'
+
+// ==================== 图标映射配置 ====================
+const iconMap: Record<string, Component> = {
+  home: HomeFilled,
+  trend: TrendCharts,
+  search: Search,
+  calendar: Calendar,
+  dataAnalysis: DataAnalysis,
+  timer: Timer,
+  document: Document,
+}
+
+// ==================== 菜单项类型定义 ====================
+interface MenuItem {
+  index: string       // 路由路径或子菜单标识
+  title: string       // 显示名称
+  icon: string        // iconMap 中的 key
+  children?: MenuItem[] // 子菜单项（可选）
+}
+
+// ==================== 菜单配置 ====================
+const menuConfig: MenuItem[] = [
+  // 首页
+  { index: '/', title: '首页', icon: 'home' },
+  // 捕捉趋势
+  {
+    index: 'catch-trend',
+    title: '捕捉趋势',
+    icon: 'trend',
+    children: [
+      { index: '/catch-raise', title: '五指标捕捉', icon: 'dataAnalysis' }
+    ]
+  },
+  // 查询数据
+  {
+    index: 'query-data',
+    title: '查询数据',
+    icon: 'search',
+    children: [
+      { index: '/stock', title: '单股查询', icon: 'document' }
+    ]
+  },
+  // 历史数据查询
+  {
+    index: 'history-query',
+    title: '历史数据查询',
+    icon: 'calendar',
+    children: [
+      { index: '/trade-date-query', title: '交易日查询', icon: 'calendar' },
+      { index: '/price-compare', title: '价格对比', icon: 'dataAnalysis' }
+    ]
+  },
+  // 定时任务
+  { index: '/scheduler-manage', title: '定时任务', icon: 'timer' }
+]
+
+// ==================== 自动计算有效子菜单列表 ====================
+const validSubMenus = computed(() =>
+  menuConfig.filter(item => item.children).map(item => item.index)
+)
 
 const route = useRoute()
 
@@ -13,8 +132,7 @@ const getOpenedMenus = (): string[] => {
   const saved = localStorage.getItem('opened-submenus')
   let result = saved ? JSON.parse(saved) : []
   // 过滤掉无效的菜单项（只保留有效的子菜单）
-  const validSubMenus = ['catch-trend', 'query-data', 'history-query']
-  result = result.filter((item: string) => validSubMenus.includes(item))
+  result = result.filter((item: string) => validSubMenus.value.includes(item))
   return result
 }
 
@@ -42,8 +160,7 @@ watch(isCollapsed, async (newValue, oldValue) => {
 // 子菜单展开事件
 const handleMenuOpen = (index: string) => {
   // 只处理 el-sub-menu（不处理 el-menu-item 如 "/"）
-  const validSubMenus = ['catch-trend', 'query-data', 'history-query']
-  if (!validSubMenus.includes(index)) {
+  if (!validSubMenus.value.includes(index)) {
     return
   }
 
@@ -75,86 +192,7 @@ const handleMenuClose = (index: string) => {
     localStorage.setItem('opened-submenus', JSON.stringify(savedOpenedMenus.value))
   }
 }
-
 </script>
-
-<template>
-  <el-aside class="layout-aside" :width="isCollapsed ? '64px' : '200px'">
-    <div class="aside-container">
-      <el-menu
-        :key="menuKey"
-        :default-active="route.path"
-        :default-openeds="openedMenus"
-        router
-        :collapse="isCollapsed"
-        :collapse-transition="false"
-        class="menu-vertical"
-        @open="handleMenuOpen"
-        @close="handleMenuClose"
-      >
-        <!-- 首页 -->
-        <el-menu-item index="/">
-          <el-icon><HomeFilled /></el-icon>
-          <span>首页</span>
-        </el-menu-item>
-
-        <!-- 捕捉趋势（一级菜单，无跳转） -->
-        <el-sub-menu index="catch-trend">
-          <template #title>
-            <el-icon><TrendCharts /></el-icon>
-            <span>捕捉趋势</span>
-          </template>
-          <el-menu-item index="/catch-raise">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>五指标捕捉</span>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 查询数据（一级菜单，无跳转） -->
-        <el-sub-menu index="query-data">
-          <template #title>
-            <el-icon><Search /></el-icon>
-            <span>查询数据</span>
-          </template>
-          <el-menu-item index="/stock">
-            <el-icon><Document /></el-icon>
-            <span>单股查询</span>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 历史数据查询（一级菜单，无跳转） -->
-        <el-sub-menu index="history-query">
-          <template #title>
-            <el-icon><Calendar /></el-icon>
-            <span>历史数据查询</span>
-          </template>
-          <el-menu-item index="/trade-date-query">
-            <el-icon><Calendar /></el-icon>
-            <span>交易日查询</span>
-          </el-menu-item>
-          <el-menu-item index="/price-compare">
-            <el-icon><DataAnalysis /></el-icon>
-            <span>价格对比</span>
-          </el-menu-item>
-        </el-sub-menu>
-
-        <!-- 定时任务（一级菜单，有跳转） -->
-        <el-menu-item index="/scheduler-manage">
-          <el-icon><Timer /></el-icon>
-          <span>定时任务</span>
-        </el-menu-item>
-      </el-menu>
-      <div class="collapse-btn-container">
-        <el-button
-          class="collapse-btn"
-          link
-          :icon="isCollapsed ? Expand : Fold"
-          @click="isCollapsed = !isCollapsed"
-        />
-      </div>
-    </div>
-  </el-aside>
-</template>
 
 <style scoped>
 .layout-aside {
