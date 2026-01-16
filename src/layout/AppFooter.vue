@@ -1,7 +1,11 @@
+<script setup lang="ts">
+const appVersion = __APP_VERSION__
+</script>
+
 <template>
   <footer class="layout-footer">
     <div class="footer-content">
-      <span>copyright@2026 · v{{ __APP_VERSION__ }}</span>
+      <span>copyright@2026 · v{{ appVersion }}</span>
     </div>
   </footer>
 </template>
