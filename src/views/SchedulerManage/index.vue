@@ -42,6 +42,8 @@ import {
   triggerKlineImport,
   triggerProfitAnalysis,
   triggerStockFilter,
+  triggerStockTableSync,
+  triggerStockPlateSync,
   getExecutionHistory,
   getLatestExecution
 } from '@/api/scheduler'
@@ -165,12 +167,26 @@ async function handleTrigger(jobName: string) {
 
   try {
     let res: any
+    let branch = 'none'
     if (jobName === 'kline_import') {
+      branch = 'kline_import'
       res = await triggerKlineImport()
     } else if (jobName === 'profit_analysis') {
+      branch = 'profit_analysis'
       res = await triggerProfitAnalysis()
     } else if (jobName === 'stock_filter_morning' || jobName === 'stock_filter_afternoon') {
+      branch = 'stock_filter'
       res = await triggerStockFilter()
+    } else if (jobName === 'stock_table_sync') {
+      branch = 'stock_table_sync'
+      res = await triggerStockTableSync()
+    } else if (jobName === 'stock_plate_sync') {
+      branch = 'stock_plate_sync'
+      res = await triggerStockPlateSync()
+    } else {
+      branch = 'unknown'
+      ElMessage.error(`未知任务: ${jobName}`)
+      return
     }
 
     const result = res.data || res

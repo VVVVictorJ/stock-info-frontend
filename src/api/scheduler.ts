@@ -12,6 +12,20 @@ export const triggerProfitAnalysis = () =>
 export const triggerStockFilter = () =>
   request.post('/scheduler/trigger-stock-filter')
 
+// 手动触发 stock_table 同步任务
+export const triggerStockTableSync = async () => {
+  const startedAt = Date.now()
+  const res = await request.post('/scheduler/trigger-stock-table-sync', undefined, { timeout: 60000 })
+  return res
+}
+
+// 手动触发 stock_plate 同步任务
+export const triggerStockPlateSync = async () => {
+  const startedAt = Date.now()
+  const res = await request.post('/scheduler/trigger-stock-plate-sync', undefined, { timeout: 300000 })
+  return res
+}
+
 // 获取任务列表
 export const getJobList = () =>
   request.get('/scheduler/jobs')
