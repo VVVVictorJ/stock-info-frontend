@@ -17,6 +17,10 @@ export interface TradeDateQueryItem {
   bid_ask_ratio: string
   main_force_inflow: string
   created_at: string
+  plates: Array<{
+    plate_code: string
+    name: string
+  }>
 }
 
 // 交易日查询响应

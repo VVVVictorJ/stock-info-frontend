@@ -25,6 +25,25 @@
           style="width: 180px"
         />
       </div>
+      <el-popover placement="bottom-end" trigger="click">
+        <template #reference>
+          <el-button class="column-config-button" size="small" circle>
+            <el-icon><Setting /></el-icon>
+          </el-button>
+        </template>
+        <div class="column-config">
+          <div class="column-config-title">显示列</div>
+          <el-checkbox-group v-model="visibleColumns">
+            <el-checkbox
+              v-for="column in columnOptions"
+              :key="column.key"
+              :label="column.key"
+            >
+              {{ column.label }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </div>
+      </el-popover>
       <span v-if="hasData" class="result-stats">
         共 {{ filteredTotal }} 只股票
       </span>
@@ -45,8 +64,36 @@
             @row-click="handleRowClick"
             :row-class-name="getRowClassName"
           >
-            <el-table-column prop="stock_code" label="股票代码" min-width="100" sortable />
-            <el-table-column prop="stock_name" label="股票名称" min-width="120" sortable />
+            <el-table-column
+              v-if="isColumnVisible('stock_code')"
+              prop="stock_code"
+              label="股票代码"
+              min-width="100"
+              sortable
+            />
+            <el-table-column
+              v-if="isColumnVisible('stock_name')"
+              prop="stock_name"
+              label="股票名称"
+              min-width="120"
+              sortable
+            />
+            <el-table-column v-if="isColumnVisible('plates')" label="板块" min-width="200">
+              <template #default="{ row }">
+                <div v-if="row.plates && row.plates.length" class="plate-tags">
+                  <el-tag
+                    v-for="plate in row.plates"
+                    :key="plate.plate_code"
+                    size="small"
+                    class="plate-tag"
+                    effect="light"
+                  >
+                    {{ plate.name }}
+                  </el-tag>
+                </div>
+                <span v-else>-</span>
+              </template>
+            </el-table-column>
           </el-table>
         </div>
       </div>
@@ -129,10 +176,12 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
 import type { TradeDateQueryItem } from '@/types/tradeDateQuery'
+import { Setting } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   leftTableData: TradeDateQueryItem[]
@@ -150,6 +199,18 @@ const emit = defineEmits<{
   'update:filterTrendStatus': [value: string]
   'update:selectedStockCode': [value: string]
 }>()
+
+const columnOptions = [
+  { key: 'stock_code', label: '股票代码' },
+  { key: 'stock_name', label: '股票名称' },
+  { key: 'plates', label: '板块' },
+]
+
+const visibleColumns = ref(columnOptions.map(option => option.key))
+
+function isColumnVisible(key: string) {
+  return visibleColumns.value.includes(key)
+}
 
 function handleRowClick(row: TradeDateQueryItem) {
   emit('update:selectedStockCode', row.stock_code)
@@ -179,6 +240,21 @@ function getRowClassName({ row }: { row: TradeDateQueryItem }) {
   font-weight: normal;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
+}
+
+.column-config-button {
+  margin-left: 4px;
+}
+
+.column-config {
+  min-width: 160px;
+}
+
+.column-config-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 6px;
 }
 
 /* 左右分栏容器 */
@@ -285,6 +361,16 @@ function getRowClassName({ row }: { row: TradeDateQueryItem }) {
 
 .left-table-container :deep(.selected-row):hover > td {
   background-color: #ecf5ff !important;
+}
+
+.plate-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.plate-tag {
+  margin: 2px 0;
 }
 
 /* 右表格样式 */
