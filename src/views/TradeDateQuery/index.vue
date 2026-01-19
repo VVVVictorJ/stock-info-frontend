@@ -24,7 +24,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, reactive } from 'vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { fetchTradeDateQuery } from '@/api/stock'
 import type { TradeDateQueryResponse, TradeDateQueryItem } from '@/types/tradeDateQuery'
 import { getPriceTrend } from '@/utils/priceStyles'
@@ -57,7 +57,7 @@ const filterTrendStatus = ref('')
 // 板块筛选（多选）
 const filterPlates = ref<string[]>([])
 // 区间筛选（仅左表）
-const rangeFilters = reactive<RangeFilters>({
+const rangeFilters = ref<RangeFilters>({
   changePctMin: null,
   changePctMax: null,
   volumeRatioMin: null,
@@ -165,6 +165,7 @@ const filteredData = computed(() => {
   if (allData.value.length === 0) return []
 
   let data = allData.value
+  const filters = rangeFilters.value
 
   const inRange = (value: string, min: number | null, max: number | null) => {
     const num = Number(value)
@@ -176,18 +177,18 @@ const filteredData = computed(() => {
 
   // 区间筛选（仅左表）
   if (
-    rangeFilters.changePctMin !== null || rangeFilters.changePctMax !== null ||
-    rangeFilters.volumeRatioMin !== null || rangeFilters.volumeRatioMax !== null ||
-    rangeFilters.turnoverRateMin !== null || rangeFilters.turnoverRateMax !== null ||
-    rangeFilters.bidAskRatioMin !== null || rangeFilters.bidAskRatioMax !== null ||
-    rangeFilters.mainForceInflowMin !== null || rangeFilters.mainForceInflowMax !== null
+    filters.changePctMin !== null || filters.changePctMax !== null ||
+    filters.volumeRatioMin !== null || filters.volumeRatioMax !== null ||
+    filters.turnoverRateMin !== null || filters.turnoverRateMax !== null ||
+    filters.bidAskRatioMin !== null || filters.bidAskRatioMax !== null ||
+    filters.mainForceInflowMin !== null || filters.mainForceInflowMax !== null
   ) {
     data = data.filter(item =>
-      inRange(item.change_pct, rangeFilters.changePctMin, rangeFilters.changePctMax) &&
-      inRange(item.volume_ratio, rangeFilters.volumeRatioMin, rangeFilters.volumeRatioMax) &&
-      inRange(item.turnover_rate, rangeFilters.turnoverRateMin, rangeFilters.turnoverRateMax) &&
-      inRange(item.bid_ask_ratio, rangeFilters.bidAskRatioMin, rangeFilters.bidAskRatioMax) &&
-      inRange(item.main_force_inflow, rangeFilters.mainForceInflowMin, rangeFilters.mainForceInflowMax)
+      inRange(item.change_pct, filters.changePctMin, filters.changePctMax) &&
+      inRange(item.volume_ratio, filters.volumeRatioMin, filters.volumeRatioMax) &&
+      inRange(item.turnover_rate, filters.turnoverRateMin, filters.turnoverRateMax) &&
+      inRange(item.bid_ask_ratio, filters.bidAskRatioMin, filters.bidAskRatioMax) &&
+      inRange(item.main_force_inflow, filters.mainForceInflowMin, filters.mainForceInflowMax)
     )
   }
 
@@ -312,16 +313,18 @@ async function handleInitialQuery() {
   filterStockCode.value = '' // 清空股票代码筛选
   filterTrendStatus.value = '' // 清空涨跌状态筛选
   filterPlates.value = [] // 清空板块筛选
-  rangeFilters.changePctMin = null
-  rangeFilters.changePctMax = null
-  rangeFilters.volumeRatioMin = null
-  rangeFilters.volumeRatioMax = null
-  rangeFilters.turnoverRateMin = null
-  rangeFilters.turnoverRateMax = null
-  rangeFilters.bidAskRatioMin = null
-  rangeFilters.bidAskRatioMax = null
-  rangeFilters.mainForceInflowMin = null
-  rangeFilters.mainForceInflowMax = null
+  rangeFilters.value = {
+    changePctMin: null,
+    changePctMax: null,
+    volumeRatioMin: null,
+    volumeRatioMax: null,
+    turnoverRateMin: null,
+    turnoverRateMax: null,
+    bidAskRatioMin: null,
+    bidAskRatioMax: null,
+    mainForceInflowMin: null,
+    mainForceInflowMax: null,
+  }
   allData.value = [] // 清空全量数据缓存
   selectedStockCode.value = '' // 清空选中状态
   await handleQuery()

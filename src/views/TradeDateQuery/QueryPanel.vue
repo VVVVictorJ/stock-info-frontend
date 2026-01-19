@@ -39,7 +39,20 @@
       </el-button>
     </div>
 
-    <div class="query-row">
+    <div class="range-header">
+      <span class="range-title">区间筛选</span>
+      <el-button
+        class="range-clear"
+        size="small"
+        circle
+        title="清空区间筛选"
+        @click="clearRangeFilters"
+      >
+        <el-icon><CircleClose /></el-icon>
+      </el-button>
+    </div>
+
+    <div class="range-row">
       <div class="range-filter">
         <span class="range-label">涨跌幅(%):</span>
         <el-input-number
@@ -90,7 +103,7 @@
       </div>
     </div>
 
-    <div class="query-row">
+    <div class="range-row">
       <div class="range-filter">
         <span class="range-label">委比:</span>
         <el-input-number
@@ -128,10 +141,10 @@
 </template>
 
 <script setup lang="ts">
-import { Search } from '@element-plus/icons-vue'
+import { CircleClose, Search } from '@element-plus/icons-vue'
 import QueryCard from '@/component/common/QueryCard.vue'
 
-defineProps<{
+const props = defineProps<{
   queryDate: string
   filterPlates: string[]
   plateOptions: Array<{ plate_code: string; name: string }>
@@ -151,7 +164,7 @@ defineProps<{
   errorMessage: string
 }>()
 
-defineEmits<{
+const emit = defineEmits<{
   'update:queryDate': [value: string]
   'update:filterPlates': [value: string[]]
   'update:rangeFilters': [value: {
@@ -169,6 +182,22 @@ defineEmits<{
   'query': []
   'clear-error': []
 }>()
+
+function clearRangeFilters() {
+  emit('update:rangeFilters', {
+    ...props.rangeFilters,
+    changePctMin: null,
+    changePctMax: null,
+    volumeRatioMin: null,
+    volumeRatioMax: null,
+    turnoverRateMin: null,
+    turnoverRateMax: null,
+    bidAskRatioMin: null,
+    bidAskRatioMax: null,
+    mainForceInflowMin: null,
+    mainForceInflowMax: null,
+  })
+}
 </script>
 
 <style scoped>
@@ -187,20 +216,53 @@ defineEmits<{
   gap: 12px;
 }
 
+.range-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding: 2px 0;
+}
+
+.range-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+}
+
+.range-clear {
+  color: var(--el-text-color-secondary);
+}
+
+.range-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 12px 16px;
+}
+
+.range-row + .range-row {
+  margin-top: 8px;
+}
+
 .range-filter {
   display: flex;
   align-items: center;
   gap: 6px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: #f7f9fc;
 }
 
 .range-label {
   font-size: 13px;
   color: var(--el-text-color-regular);
   white-space: nowrap;
+  min-width: 72px;
+  text-align: right;
 }
 
 .range-input {
-  width: 120px;
+  width: 110px;
 }
 
 .range-separator {

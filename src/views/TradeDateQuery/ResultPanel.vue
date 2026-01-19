@@ -25,7 +25,7 @@
           style="width: 180px"
         />
       </div>
-      <el-popover placement="bottom-end" trigger="click">
+      <el-popover placement="bottom-end" trigger="click" popper-class="column-config-popper">
         <template #reference>
           <el-button class="column-config-button" size="small" circle>
             <el-icon><Setting /></el-icon>
@@ -248,6 +248,9 @@ function getRowClassName({ row }: { row: TradeDateQueryItem }) {
 
 .column-config {
   min-width: 160px;
+  max-width: 220px;
+  max-height: 260px;
+  overflow: auto;
 }
 
 .column-config-title {
@@ -255,6 +258,17 @@ function getRowClassName({ row }: { row: TradeDateQueryItem }) {
   font-weight: 600;
   color: var(--el-text-color-primary);
   margin-bottom: 6px;
+}
+
+.column-config :deep(.el-checkbox-group) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+:global(.column-config-popper) {
+  max-width: 240px;
+  overflow: hidden;
 }
 
 /* 左右分栏容器 */
