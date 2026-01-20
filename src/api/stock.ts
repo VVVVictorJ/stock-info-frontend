@@ -1,7 +1,12 @@
 import { http } from '@/utils/request'
 import type { FetchSingleStockParams, SingleStockResponse } from '@/types/stock'
 import type { FetchCatchRaiseStockParams, CatchRaiseStockResponse, FetchCatchRaiseStockParamParams } from '@/types/stock'
-import type { TradeDateQueryRequest, TradeDateQueryResponse } from '@/types/tradeDateQuery'
+import type {
+  TradeDateQueryRequest,
+  TradeDateQueryResponse,
+  TradeDatePlateRefreshRequest,
+  TradeDatePlateRefreshResponse,
+} from '@/types/tradeDateQuery'
 import type { PriceCompareRequest, PriceCompareResponse } from '@/types/priceCompare'
 
 /**
@@ -32,6 +37,11 @@ export async function fetchCatchRaiseStockParam(params: FetchCatchRaiseStockPara
 // 交易日查询（后端路径：/stock-trade-date-query）
 export async function fetchTradeDateQuery(params: TradeDateQueryRequest) {
   return http.post<TradeDateQueryResponse>('/stock-trade-date-query', params)
+}
+
+// 交易日板块补全（后端路径：/stock-trade-date-query/refresh-plates）
+export async function refreshTradeDatePlates(params: TradeDatePlateRefreshRequest) {
+  return http.post<TradeDatePlateRefreshResponse>('/stock-trade-date-query/refresh-plates', params)
 }
 
 // 价格对比查询（后端路径：/stock-price-compare）

@@ -44,6 +44,16 @@
           </el-checkbox-group>
         </div>
       </el-popover>
+      <el-button
+        class="refresh-plates-button"
+        size="small"
+        circle
+        :loading="refreshing"
+        title="补全板块并刷新"
+        @click="$emit('refresh-plates')"
+      >
+        <el-icon><Refresh /></el-icon>
+      </el-button>
       <span v-if="hasData" class="result-stats">
         共 {{ filteredTotal }} 只股票
       </span>
@@ -181,7 +191,7 @@ import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
 import type { TradeDateQueryItem } from '@/types/tradeDateQuery'
-import { Setting } from '@element-plus/icons-vue'
+import { Refresh, Setting } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   leftTableData: TradeDateQueryItem[]
@@ -192,12 +202,14 @@ const props = defineProps<{
   filteredTotal: number
   loading: boolean
   hasData: boolean
+  refreshing: boolean
 }>()
 
 const emit = defineEmits<{
   'update:filterStockCode': [value: string]
   'update:filterTrendStatus': [value: string]
   'update:selectedStockCode': [value: string]
+  'refresh-plates': []
 }>()
 
 const columnOptions = [
@@ -243,6 +255,10 @@ function getRowClassName({ row }: { row: TradeDateQueryItem }) {
 }
 
 .column-config-button {
+  margin-left: 4px;
+}
+
+.refresh-plates-button {
   margin-left: 4px;
 }
 

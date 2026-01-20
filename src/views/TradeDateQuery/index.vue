@@ -19,13 +19,15 @@
       :filtered-total="filteredTotal"
       :loading="loading || isLoadingAll"
       :has-data="!!responseData"
+      :refreshing="isRefreshingPlates"
+      @refresh-plates="handleRefreshPlates"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
-import { fetchTradeDateQuery } from '@/api/stock'
+import { fetchTradeDateQuery, refreshTradeDatePlates } from '@/api/stock'
 import type { TradeDateQueryResponse, TradeDateQueryItem } from '@/types/tradeDateQuery'
 import { getPriceTrend } from '@/utils/priceStyles'
 import QueryPanel from './QueryPanel.vue'
@@ -36,6 +38,7 @@ const loading = ref(false)
 const errorMessage = ref('')
 const queryDate = ref('')
 const responseData = ref<TradeDateQueryResponse | null>(null)
+const isRefreshingPlates = ref(false)
 
 interface RangeFilters {
   changePctMin: number | null
@@ -305,6 +308,26 @@ async function handleQuery() {
     selectedStockCode.value = ''
   } finally {
     loading.value = false
+  }
+}
+
+// 补全板块并刷新
+async function handleRefreshPlates() {
+  if (!queryDate.value) {
+    errorMessage.value = '请选择交易日期'
+    return
+  }
+  if (isRefreshingPlates.value) return
+
+  errorMessage.value = ''
+  isRefreshingPlates.value = true
+  try {
+    await refreshTradeDatePlates({ trade_date: queryDate.value })
+    await handleQuery()
+  } catch (err: any) {
+    errorMessage.value = err?.message || '补全板块失败'
+  } finally {
+    isRefreshingPlates.value = false
   }
 }
 

@@ -32,3 +32,19 @@ export interface TradeDateQueryResponse {
   total_pages: number
 }
 
+// 补全板块请求参数
+export interface TradeDatePlateRefreshRequest {
+  trade_date: string
+}
+
+// 补全板块响应
+export interface TradeDatePlateRefreshResponse {
+  total_count: number
+  missing_count: number
+  stock_table_inserted: number
+  plate_inserted: number
+  plate_updated: number
+  relation_inserted: number
+  failed_count: number
+}
+
