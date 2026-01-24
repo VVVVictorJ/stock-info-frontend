@@ -1,147 +1,199 @@
 <template>
   <QueryCard
+    class="trade-query-card"
     title="查询条件"
     :error-message="errorMessage"
     :closable="true"
     @clear-error="$emit('clear-error')"
   >
-    <div class="query-row">
-      <el-date-picker
-        :model-value="queryDate"
-        @update:model-value="$emit('update:queryDate', $event)"
-        type="date"
-        placeholder="选择交易日期"
-        format="YYYY-MM-DD"
-        value-format="YYYY-MM-DD"
-        class="date-picker"
-      />
-      <el-select
-        :model-value="filterPlates"
-        @update:model-value="$emit('update:filterPlates', $event)"
-        multiple
-        filterable
-        clearable
-        collapse-tags
-        collapse-tags-tooltip
-        placeholder="选择板块（可搜索）"
-        class="plate-select"
-      >
-        <el-option
-          v-for="plate in plateOptions"
-          :key="plate.plate_code"
-          :label="plate.name"
-          :value="plate.plate_code"
-        />
-      </el-select>
-      <el-button type="primary" :loading="loading" @click="$emit('query')">
-        <el-icon><Search /></el-icon>
-        查询
-      </el-button>
-    </div>
-
-    <div class="range-header">
-      <span class="range-title">区间筛选</span>
+    <template #header-extra>
       <el-button
-        class="range-clear"
-        size="small"
+        class="collapse-button"
+        text
         circle
-        title="清空区间筛选"
-        @click="clearRangeFilters"
+        :title="isQueryCollapsed ? '展开查询条件' : '折叠查询条件'"
+        @click="isQueryCollapsed = !isQueryCollapsed"
       >
-        <el-icon><CircleClose /></el-icon>
+        <el-icon>
+          <CaretBottom v-if="isQueryCollapsed" />
+          <CaretTop v-else />
+        </el-icon>
       </el-button>
+    </template>
+    <div v-show="!isQueryCollapsed" class="query-content-wrapper">
+      <div class="query-row">
+        <div class="query-left">
+          <el-date-picker
+            :model-value="queryDate"
+            @update:model-value="$emit('update:queryDate', $event)"
+            type="date"
+            placeholder="选择交易日期"
+            format="YYYY-MM-DD"
+            value-format="YYYY-MM-DD"
+            class="date-picker"
+          />
+          <el-select
+            :model-value="filterPlates"
+            @update:model-value="$emit('update:filterPlates', $event)"
+            multiple
+            filterable
+            clearable
+            collapse-tags
+            collapse-tags-tooltip
+            placeholder="选择板块（可搜索）"
+            class="plate-select"
+          >
+            <el-option
+              v-for="plate in plateOptions"
+              :key="plate.plate_code"
+              :label="plate.name"
+              :value="plate.plate_code"
+            />
+          </el-select>
+        </div>
+        <div class="query-actions">
+          <el-button type="primary" :loading="loading" @click="$emit('query')">
+            <el-icon><Search /></el-icon>
+            查询
+          </el-button>
+          <el-button :type="isRunning ? 'danger' : 'primary'" @click="$emit('toggle-run')">
+            {{ isRunning ? '停止' : '开始' }}
+          </el-button>
+          <div v-if="nextRefreshInSeconds > 0" class="countdown">
+            <span class="countdown-label">下次刷新：{{ nextRefreshInSeconds }}s</span>
+            <el-progress
+              :percentage="progressPercent"
+              :show-text="false"
+              :stroke-width="6"
+              class="countdown-progress"
+            />
+          </div>
+        </div>
+    <div v-show="isQueryCollapsed" class="collapsed-summary">
+      <span class="summary-title">已选择</span>
+      <span class="summary-item">日期：{{ summaryDate }}</span>
+      <span class="summary-item">板块：{{ summaryPlates }}</span>
     </div>
+      </div>
 
-    <div class="range-row">
-      <div class="range-filter">
-        <span class="range-label">涨跌幅(%):</span>
-        <el-input-number
-          :model-value="rangeFilters.changePctMin"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, changePctMin: $event })"
-          controls-position="right"
-          class="range-input"
-        />
-        <span class="range-separator">~</span>
-        <el-input-number
-          :model-value="rangeFilters.changePctMax"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, changePctMax: $event })"
-          controls-position="right"
-          class="range-input"
-        />
-      </div>
-      <div class="range-filter">
-        <span class="range-label">量比:</span>
-        <el-input-number
-          :model-value="rangeFilters.volumeRatioMin"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, volumeRatioMin: $event })"
-          controls-position="right"
-          class="range-input"
-        />
-        <span class="range-separator">~</span>
-        <el-input-number
-          :model-value="rangeFilters.volumeRatioMax"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, volumeRatioMax: $event })"
-          controls-position="right"
-          class="range-input"
-        />
-      </div>
-      <div class="range-filter">
-        <span class="range-label">换手率(%):</span>
-        <el-input-number
-          :model-value="rangeFilters.turnoverRateMin"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, turnoverRateMin: $event })"
-          controls-position="right"
-          class="range-input"
-        />
-        <span class="range-separator">~</span>
-        <el-input-number
-          :model-value="rangeFilters.turnoverRateMax"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, turnoverRateMax: $event })"
-          controls-position="right"
-          class="range-input"
-        />
-      </div>
-    </div>
+      <div class="range-panel">
+        <div class="range-header">
+          <span class="range-title">区间筛选</span>
+          <div class="range-actions">
+            <el-button
+              class="collapse-button"
+              text
+              circle
+              :title="isRangeCollapsed ? '展开区间筛选' : '折叠区间筛选'"
+              @click="isRangeCollapsed = !isRangeCollapsed"
+            >
+              <el-icon>
+                <CaretBottom v-if="isRangeCollapsed" />
+                <CaretTop v-else />
+              </el-icon>
+            </el-button>
+            <el-button
+              class="range-clear"
+              size="small"
+              circle
+              title="清空区间筛选"
+              @click="clearRangeFilters"
+            >
+              <el-icon><CircleClose /></el-icon>
+            </el-button>
+          </div>
+        </div>
 
-    <div class="range-row">
-      <div class="range-filter">
-        <span class="range-label">委比:</span>
-        <el-input-number
-          :model-value="rangeFilters.bidAskRatioMin"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, bidAskRatioMin: $event })"
-          controls-position="right"
-          class="range-input"
-        />
-        <span class="range-separator">~</span>
-        <el-input-number
-          :model-value="rangeFilters.bidAskRatioMax"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, bidAskRatioMax: $event })"
-          controls-position="right"
-          class="range-input"
-        />
+        <div v-show="!isRangeCollapsed" class="range-row range-row-single">
+        <div class="range-filter">
+          <span class="range-label">涨跌幅(%):</span>
+          <el-input-number
+            :model-value="rangeFilters.changePctMin"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, changePctMin: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+          <span class="range-separator">~</span>
+          <el-input-number
+            :model-value="rangeFilters.changePctMax"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, changePctMax: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+        </div>
+        <div class="range-filter">
+          <span class="range-label">量比:</span>
+          <el-input-number
+            :model-value="rangeFilters.volumeRatioMin"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, volumeRatioMin: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+          <span class="range-separator">~</span>
+          <el-input-number
+            :model-value="rangeFilters.volumeRatioMax"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, volumeRatioMax: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+        </div>
+        <div class="range-filter">
+          <span class="range-label">换手率(%):</span>
+          <el-input-number
+            :model-value="rangeFilters.turnoverRateMin"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, turnoverRateMin: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+          <span class="range-separator">~</span>
+          <el-input-number
+            :model-value="rangeFilters.turnoverRateMax"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, turnoverRateMax: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+        </div>
+        <div class="range-filter">
+          <span class="range-label">委比:</span>
+          <el-input-number
+            :model-value="rangeFilters.bidAskRatioMin"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, bidAskRatioMin: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+          <span class="range-separator">~</span>
+          <el-input-number
+            :model-value="rangeFilters.bidAskRatioMax"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, bidAskRatioMax: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+        </div>
+        <div class="range-filter">
+          <span class="range-label">主力资金流入:</span>
+          <el-input-number
+            :model-value="rangeFilters.mainForceInflowMin"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, mainForceInflowMin: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+          <span class="range-separator">~</span>
+          <el-input-number
+            :model-value="rangeFilters.mainForceInflowMax"
+            @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, mainForceInflowMax: $event })"
+            controls-position="right"
+            class="range-input"
+          />
+        </div>
+        </div>
       </div>
-      <div class="range-filter">
-        <span class="range-label">主力资金流入:</span>
-        <el-input-number
-          :model-value="rangeFilters.mainForceInflowMin"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, mainForceInflowMin: $event })"
-          controls-position="right"
-          class="range-input"
-        />
-        <span class="range-separator">~</span>
-        <el-input-number
-          :model-value="rangeFilters.mainForceInflowMax"
-          @update:model-value="$emit('update:rangeFilters', { ...rangeFilters, mainForceInflowMax: $event })"
-          controls-position="right"
-          class="range-input"
-        />
       </div>
-    </div>
   </QueryCard>
 </template>
 
 <script setup lang="ts">
-import { CircleClose, Search } from '@element-plus/icons-vue'
+import { computed, ref } from 'vue'
+import { CaretBottom, CaretTop, CircleClose, Search } from '@element-plus/icons-vue'
 import QueryCard from '@/component/common/QueryCard.vue'
 
 const props = defineProps<{
@@ -162,6 +214,8 @@ const props = defineProps<{
   }
   loading: boolean
   errorMessage: string
+  isRunning: boolean
+  nextRefreshInSeconds: number
 }>()
 
 const emit = defineEmits<{
@@ -181,7 +235,28 @@ const emit = defineEmits<{
   }]
   'query': []
   'clear-error': []
+  'toggle-run': []
 }>()
+
+const countdownTotalSeconds = 30
+const isQueryCollapsed = ref(false)
+const isRangeCollapsed = ref(false)
+const summaryDate = computed(() => props.queryDate || '未选择')
+const summaryPlates = computed(() => {
+  if (!props.filterPlates || props.filterPlates.length === 0) return '未选择'
+  const selected = new Set(props.filterPlates)
+  const names = props.plateOptions
+    .filter(option => selected.has(option.plate_code))
+    .map(option => option.name)
+  if (names.length === 0) return `${props.filterPlates.length} 个`
+  if (names.length <= 3) return names.join(' / ')
+  return `${names.slice(0, 3).join(' / ')} +${names.length - 3}`
+})
+const progressPercent = computed(() => {
+  if (props.nextRefreshInSeconds <= 0) return 0
+  const progress = (props.nextRefreshInSeconds / countdownTotalSeconds) * 100
+  return Math.max(0, Math.min(100, Math.round(progress)))
+})
 
 function clearRangeFilters() {
   emit('update:rangeFilters', {
@@ -209,25 +284,157 @@ function clearRangeFilters() {
   width: 200px;
 }
 
+:deep(.trade-query-card.query-card) {
+  background: transparent;
+  width: 100%;
+}
+
+:deep(.trade-query-card .el-card__header) {
+  padding: 4px 12px;
+  background: transparent;
+  border-bottom: none;
+  color: var(--el-text-color-regular);
+}
+
+:deep(.trade-query-card .card-header) {
+  font-size: 8px;
+  font-weight: 600;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+:deep(.trade-query-card .el-card__body) {
+  background: transparent;
+  width: 100%;
+  padding: 8px 12px 12px;
+}
+
+:deep(.trade-query-card .query-form) {
+  display: block;
+  width: 100%;
+}
+
+:deep(.trade-query-card.query-card) {
+  margin-bottom: 8px;
+}
+
+.query-content-wrapper {
+  width: 100%;
+  box-sizing: border-box;
+}
+
 .query-row {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: 1fr auto;
   align-items: center;
+  gap: 12px 16px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 8px 24px rgba(31, 45, 61, 0.08);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  box-sizing: border-box;
+}
+
+.query-left {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
   gap: 12px;
+  min-width: 0;
+}
+
+.query-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+
+.collapse-button {
+  color: var(--el-text-color-secondary);
+}
+
+.countdown {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 180px;
+}
+
+.countdown-label {
+  color: var(--el-text-color-secondary);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.countdown-progress {
+  flex: 1;
+  min-width: 100px;
+}
+
+.collapsed-summary {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.summary-title {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--el-text-color-secondary);
+  letter-spacing: 1px;
+}
+
+.summary-item {
+  font-size: 12px;
+  color: var(--el-text-color-regular);
+}
+
+.range-panel {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 6px 18px rgba(31, 45, 61, 0.08);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .range-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-top: 4px;
-  padding: 2px 0;
+  margin-bottom: 10px;
+}
+
+.range-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 .range-title {
-  font-size: 13px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   color: var(--el-text-color-primary);
+  letter-spacing: 1px;
 }
 
 .range-clear {
@@ -240,6 +447,11 @@ function clearRangeFilters() {
   gap: 12px 16px;
 }
 
+.range-row-single {
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 10px 12px;
+}
+
 .range-row + .range-row {
   margin-top: 8px;
 }
@@ -248,21 +460,35 @@ function clearRangeFilters() {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 4px 6px;
-  border-radius: 4px;
-  background: #f7f9fc;
+  padding: 6px 8px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .range-label {
-  font-size: 13px;
+  font-size: 11px;
+  font-weight: 500;
   color: var(--el-text-color-regular);
   white-space: nowrap;
-  min-width: 72px;
+  min-width: 56px;
   text-align: right;
 }
 
 .range-input {
-  width: 110px;
+  width: 86px;
+}
+
+:deep(.range-input .el-input__inner) {
+  height: 28px;
+  font-size: 12px;
+  padding: 0 8px;
+}
+
+:deep(.range-input .el-input-number__decrease),
+:deep(.range-input .el-input-number__increase) {
+  width: 18px;
 }
 
 .range-separator {

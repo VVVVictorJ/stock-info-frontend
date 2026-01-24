@@ -7,8 +7,11 @@
       :plate-options="plateOptions"
       :loading="loading"
       :error-message="errorMessage"
+      :is-running="isAutoRunning"
+      :next-refresh-in-seconds="nextRefreshInSeconds"
       @query="handleInitialQuery"
       @clear-error="errorMessage = ''"
+      @toggle-run="toggleAutoQuery"
     />
     <ResultPanel
       :left-table-data="leftTableData"
@@ -20,16 +23,18 @@
       :loading="loading || isLoadingAll"
       :has-data="!!responseData"
       :refreshing="isRefreshingPlates"
+      :new-stock-codes="newStockCodes"
       @refresh-plates="handleRefreshPlates"
     />
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { fetchTradeDateQuery, refreshTradeDatePlates } from '@/api/stock'
 import type { TradeDateQueryResponse, TradeDateQueryItem } from '@/types/tradeDateQuery'
 import { getPriceTrend } from '@/utils/priceStyles'
+import { useDailyHistoryStore } from '@/store/daily-history/dailyHistory'
 import QueryPanel from './QueryPanel.vue'
 import ResultPanel from './ResultPanel.vue'
 
@@ -39,6 +44,11 @@ const errorMessage = ref('')
 const queryDate = ref('')
 const responseData = ref<TradeDateQueryResponse | null>(null)
 const isRefreshingPlates = ref(false)
+const isAutoRunning = ref(false)
+const countdownTimerId = ref<number | null>(null)
+const nextRefreshInSeconds = ref(0)
+const dailyHistoryStore = useDailyHistoryStore()
+const newRecordKeys = ref<string[]>([])
 
 interface RangeFilters {
   changePctMin: number | null
@@ -83,6 +93,10 @@ const selectedStockCode = ref('')
 onMounted(() => {
   const today = new Date()
   queryDate.value = today.toISOString().split('T')[0] as string
+})
+
+onUnmounted(() => {
+  stopAutoQuery()
 })
 
 // 加载全量数据（分批次请求，每次100条）
@@ -255,6 +269,17 @@ const filteredTotal = computed(() => {
   return leftTableData.value.length
 })
 
+const newStockCodes = computed(() => {
+  const codes = new Set<string>()
+  for (const key of newRecordKeys.value) {
+    const [code] = key.split('__')
+    if (code) {
+      codes.add(code)
+    }
+  }
+  return Array.from(codes)
+})
+
 // 当左侧筛选结果变化时，保持选中项有效
 watch(leftTableData, (data) => {
   if (!selectedStockCode.value) {
@@ -291,10 +316,19 @@ async function handleQuery() {
     if (!res.data || res.data.length === 0) {
       errorMessage.value = '未查询到数据'
       allData.value = []
+      newRecordKeys.value = []
       selectedStockCode.value = ''
+      dailyHistoryStore.reset()
     } else {
       // 自动加载全量数据
       await loadAllData()
+
+      const updateResult = dailyHistoryStore.updateWithResults(allData.value, res)
+      newRecordKeys.value = updateResult.newKeys
+      if (!updateResult.hasChanges) {
+        allData.value = dailyHistoryStore.lastItems
+        responseData.value = dailyHistoryStore.lastResponse || res
+      }
 
       // 加载完成后自动选中第一条
       if (leftTableData.value.length > 0) {
@@ -305,9 +339,14 @@ async function handleQuery() {
     errorMessage.value = err?.message || '查询失败'
     responseData.value = null
     allData.value = []
+    newRecordKeys.value = []
     selectedStockCode.value = ''
+    dailyHistoryStore.reset()
   } finally {
     loading.value = false
+    if (isAutoRunning.value) {
+      resetCountdown()
+    }
   }
 }
 
@@ -333,6 +372,8 @@ async function handleRefreshPlates() {
 
 // 初始查询（重置到第一页）
 async function handleInitialQuery() {
+  dailyHistoryStore.reset()
+  newRecordKeys.value = []
   filterStockCode.value = '' // 清空股票代码筛选
   filterTrendStatus.value = '' // 清空涨跌状态筛选
   filterPlates.value = [] // 清空板块筛选
@@ -351,6 +392,56 @@ async function handleInitialQuery() {
   allData.value = [] // 清空全量数据缓存
   selectedStockCode.value = '' // 清空选中状态
   await handleQuery()
+}
+
+function resetCountdown() {
+  nextRefreshInSeconds.value = 30
+}
+
+function startCountdownTimer() {
+  if (countdownTimerId.value !== null) return
+  countdownTimerId.value = window.setInterval(async () => {
+    if (!isAutoRunning.value) return
+    if (nextRefreshInSeconds.value > 0) {
+      nextRefreshInSeconds.value -= 1
+      return
+    }
+    if (loading.value || isLoadingAll.value || isRefreshingPlates.value) {
+      nextRefreshInSeconds.value = 1
+      return
+    }
+    await handleQuery()
+    resetCountdown()
+  }, 1000)
+}
+
+function stopCountdownTimer() {
+  if (countdownTimerId.value !== null) {
+    clearInterval(countdownTimerId.value)
+    countdownTimerId.value = null
+  }
+}
+
+function startAutoQuery() {
+  if (isAutoRunning.value) return
+  isAutoRunning.value = true
+  resetCountdown()
+  startCountdownTimer()
+}
+
+function stopAutoQuery() {
+  if (!isAutoRunning.value) return
+  isAutoRunning.value = false
+  nextRefreshInSeconds.value = 0
+  stopCountdownTimer()
+}
+
+function toggleAutoQuery() {
+  if (isAutoRunning.value) {
+    stopAutoQuery()
+  } else {
+    startAutoQuery()
+  }
 }
 </script>
 

@@ -80,14 +80,32 @@
               label="股票代码"
               min-width="100"
               sortable
-            />
+            >
+              <template #default="{ row }">
+                <a
+                  :href="buildQuoteLink(row.stock_code)"
+                  class="stock-link"
+                  :class="{ 'new-record': isNewStock(row.stock_code) }"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ row.stock_code }}
+                </a>
+              </template>
+            </el-table-column>
             <el-table-column
               v-if="isColumnVisible('stock_name')"
               prop="stock_name"
               label="股票名称"
               min-width="120"
               sortable
-            />
+            >
+              <template #default="{ row }">
+                <span :class="{ 'new-record': isNewStock(row.stock_code) }">
+                  {{ row.stock_name }}
+                </span>
+              </template>
+            </el-table-column>
             <el-table-column v-if="isColumnVisible('plates')" label="板块" min-width="200">
               <template #default="{ row }">
                 <div v-if="row.plates && row.plates.length" class="plate-tags">
@@ -186,7 +204,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
@@ -203,6 +221,7 @@ const props = defineProps<{
   loading: boolean
   hasData: boolean
   refreshing: boolean
+  newStockCodes: string[]
 }>()
 
 const emit = defineEmits<{
@@ -219,6 +238,7 @@ const columnOptions = [
 ]
 
 const visibleColumns = ref(columnOptions.map(option => option.key))
+const newStockCodeSet = computed(() => new Set(props.newStockCodes))
 
 function isColumnVisible(key: string) {
   return visibleColumns.value.includes(key)
@@ -230,6 +250,17 @@ function handleRowClick(row: TradeDateQueryItem) {
 
 function getRowClassName({ row }: { row: TradeDateQueryItem }) {
   return row.stock_code === props.selectedStockCode ? 'selected-row' : ''
+}
+
+function isNewStock(stockCode: string) {
+  return newStockCodeSet.value.has(stockCode)
+}
+
+function buildQuoteLink(codeVal: unknown): string {
+  const code = (codeVal ?? '').toString().trim()
+  if (!code) return 'https://quote.eastmoney.com'
+  const prefix = code.startsWith('6') ? 'sh' : 'sz'
+  return `https://quote.eastmoney.com/${prefix}${code}.html`
 }
 </script>
 
@@ -391,6 +422,20 @@ function getRowClassName({ row }: { row: TradeDateQueryItem }) {
 
 .left-table-container :deep(.selected-row):hover > td {
   background-color: #ecf5ff !important;
+}
+
+.stock-link {
+  color: inherit;
+  text-decoration: none;
+}
+
+.stock-link:hover {
+  text-decoration: underline;
+}
+
+.new-record {
+  color: #f56c6c;
+  font-weight: 600;
 }
 
 .plate-tags {

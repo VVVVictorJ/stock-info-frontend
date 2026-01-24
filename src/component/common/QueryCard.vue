@@ -3,6 +3,7 @@
     <template #header>
       <div class="card-header">
         <span>{{ title }}</span>
+        <slot name="header-extra" />
       </div>
     </template>
     <div class="query-form">
