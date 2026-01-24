@@ -82,15 +82,18 @@
               sortable
             >
               <template #default="{ row }">
-                <a
-                  :href="buildQuoteLink(row.stock_code)"
-                  class="stock-link"
-                  :class="{ 'new-record': isNewStock(row.stock_code) }"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  {{ row.stock_code }}
-                </a>
+                <el-tooltip :content="`跳转至东方财富网行情页面: ${row.stock_name || row.stock_code}`" placement="top">
+                  <a
+                    :href="buildQuoteLink(row.stock_code)"
+                    class="stock-link"
+                    :class="{ 'new-record': isNewStock(row.stock_code) }"
+                    target="_blank"
+                    rel="noopener noreferrer"
+
+                  >
+                    {{ row.stock_code }}
+                  </a>
+                </el-tooltip>
               </template>
             </el-table-column>
             <el-table-column
@@ -425,8 +428,8 @@ function buildQuoteLink(codeVal: unknown): string {
 }
 
 .stock-link {
-  color: inherit;
-  text-decoration: none;
+  color: #0000ee;
+  text-decoration: underline;
 }
 
 .stock-link:hover {
