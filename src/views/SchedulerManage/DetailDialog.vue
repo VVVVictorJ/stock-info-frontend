@@ -17,9 +17,9 @@
         {{ detail.errorMessage }}
       </el-descriptions-item>
     </el-descriptions>
-    <div v-if="detail?.details" style="margin-top: 20px">
+    <div v-if="normalizedDetails.length" style="margin-top: 20px">
       <h4>执行明细</h4>
-      <el-table :data="detail.details" max-height="300" stripe>
+      <el-table :data="normalizedDetails" max-height="300" stripe>
         <el-table-column prop="stockCode" label="股票代码" width="120" />
         <el-table-column prop="stockName" label="股票名称" width="120" />
         <el-table-column prop="importedCount" label="导入数量" width="100" />
@@ -37,6 +37,7 @@
 </template>
 
 <script setup lang="ts">
+import { computed } from 'vue'
 import { formatDuration } from '@/utils/formatters'
 import type { JobInfo, JobExecutionHistory } from '@/types/scheduler'
 
@@ -73,4 +74,38 @@ function getHistoryStatusType(status: string): string {
   if (status === 'partial') return 'warning'
   return 'info'
 }
+
+const normalizedDetails = computed(() => {
+  const rawDetails = (props.detail as any)?.details
+  if (!Array.isArray(rawDetails)) return []
+  return rawDetails.map((item: any) => {
+    const stockCode = item?.stockCode ?? item?.stock_code ?? item?.code ?? ''
+    const stockName = item?.stockName ?? item?.stock_name ?? item?.name ?? ''
+    const importedCount =
+      item?.importedCount ??
+      item?.imported_count ??
+      item?.plate_total ??
+      item?.relation_inserted ??
+      item?.total ??
+      0
+    const error = item?.error ?? item?.errorMessage ?? item?.error_message ?? ''
+    let success = item?.success
+    if (typeof success !== 'boolean') {
+      if (typeof item?.action === 'string') {
+        success = item.action !== 'failed'
+      } else if (error) {
+        success = false
+      } else {
+        success = true
+      }
+    }
+    return {
+      stockCode,
+      stockName,
+      importedCount,
+      success,
+      error
+    }
+  })
+})
 </script>
