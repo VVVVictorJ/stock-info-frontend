@@ -59,7 +59,8 @@ import {
   Calendar,
   DataAnalysis,
   Timer,
-  Document
+  Document,
+  Aim
 } from '@element-plus/icons-vue'
 
 // ==================== 图标映射配置 ====================
@@ -71,6 +72,7 @@ const iconMap: Record<string, Component> = {
   dataAnalysis: DataAnalysis,
   timer: Timer,
   document: Document,
+  aim: Aim,
 }
 
 // ==================== 菜单项类型定义 ====================
@@ -110,7 +112,8 @@ const menuConfig: MenuItem[] = [
     icon: 'calendar',
     children: [
       { index: '/trade-date-query', title: '交易日查询', icon: 'calendar' },
-      { index: '/price-compare', title: '价格对比', icon: 'dataAnalysis' }
+      { index: '/price-compare', title: '价格对比', icon: 'dataAnalysis' },
+      { index: '/track-data', title: '追踪数据', icon: 'aim' }
     ]
   },
   // 定时任务

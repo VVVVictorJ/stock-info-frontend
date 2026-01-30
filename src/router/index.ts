@@ -4,6 +4,7 @@ import CatchRaise from '@/views/CatchRaise/index.vue'
 import Stock from '@/views/Stock.vue'
 import TradeDateQuery from '@/views/TradeDateQuery/index.vue'
 import PriceCompare from '@/views/PriceCompare/index.vue'
+import TrackData from '@/views/TrackData/index.vue'
 import SchedulerManage from '@/views/SchedulerManage/index.vue'
 
 const router = createRouter({
@@ -38,6 +39,12 @@ const router = createRouter({
       name: 'PriceCompare',
       component: PriceCompare,
       meta: { title: '价格对比' },
+    },
+    {
+      path: '/track-data',
+      name: 'TrackData',
+      component: TrackData,
+      meta: { title: '追踪数据' },
     },
     {
       path: '/scheduler-manage',

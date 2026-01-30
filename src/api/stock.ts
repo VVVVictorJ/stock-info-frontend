@@ -8,6 +8,12 @@ import type {
   TradeDatePlateRefreshResponse,
 } from '@/types/tradeDateQuery'
 import type { PriceCompareRequest, PriceCompareResponse } from '@/types/priceCompare'
+import type {
+  TrackQueryRequest,
+  TrackQueryResponse,
+  TrackDetailRequest,
+  TrackDetailResponse,
+} from '@/types/trackQuery'
 
 /**
  * 查询单只股票信息
@@ -47,4 +53,14 @@ export async function refreshTradeDatePlates(params: TradeDatePlateRefreshReques
 // 价格对比查询（后端路径：/stock-price-compare）
 export async function fetchPriceCompare(params: PriceCompareRequest) {
   return http.post<PriceCompareResponse>('/stock-price-compare', params)
+}
+
+// 追踪查询（后端路径：/stock-track-query）
+export async function fetchTrackQuery(params: TrackQueryRequest) {
+  return http.post<TrackQueryResponse>('/stock-track-query', params)
+}
+
+// 追踪明细查询（后端路径：/stock-track-query/detail）
+export async function fetchTrackDetail(params: TrackDetailRequest) {
+  return http.post<TrackDetailResponse>('/stock-track-query/detail', params)
 }
