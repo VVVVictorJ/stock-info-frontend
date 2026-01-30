@@ -190,7 +190,7 @@
           <el-table
             v-if="selectedStockCode"
             :data="rightTableData"
-            stripe
+            :row-class-name="getRightRowClassName"
             style="width: 100%"
             height="100%"
           >
@@ -256,7 +256,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
@@ -311,6 +311,45 @@ function buildQuoteLink(codeVal: unknown): string {
   if (!code) return 'https://quote.eastmoney.com'
   const prefix = code.startsWith('6') ? 'sh' : 'sz'
   return `https://quote.eastmoney.com/${prefix}${code}.html`
+}
+
+// 提取日期部分（YYYY-MM-DD）
+function extractDate(dateTimeStr: string): string {
+  if (!dateTimeStr) return ''
+  return dateTimeStr.split('T')[0] || dateTimeStr.substring(0, 10)
+}
+
+// 日期颜色序列（柔和的颜色）
+const dateColors = [
+  'date-color-0',  // 淡蓝
+  'date-color-1',  // 淡绿
+  'date-color-2',  // 淡橙
+  'date-color-3',  // 淡紫
+  'date-color-4',  // 淡青
+  'date-color-5',  // 淡粉
+  'date-color-6',  // 淡黄
+  'date-color-7',  // 淡灰
+]
+
+// 构建日期到颜色索引的映射
+const dateColorMap = computed(() => {
+  const map = new Map<string, number>()
+  let colorIndex = 0
+  for (const item of props.rightTableData) {
+    const date = extractDate(item.created_at)
+    if (!map.has(date)) {
+      map.set(date, colorIndex)
+      colorIndex++
+    }
+  }
+  return map
+})
+
+// 右侧表格行样式（不同天使用不同颜色）
+function getRightRowClassName({ row }: { row: TrackDetailItem }): string {
+  const date = extractDate(row.created_at)
+  const colorIndex = dateColorMap.value.get(date) ?? 0
+  return dateColors[colorIndex % dateColors.length]
 }
 </script>
 
@@ -566,5 +605,28 @@ function buildQuoteLink(codeVal: unknown): string {
 
 .trend-flat {
   color: #909399;
+}
+
+/* 右表格按日期分组的行背景色序列 */
+.right-table-container :deep(.date-color-0) { background-color: #e8f4fd; } /* 淡蓝 */
+.right-table-container :deep(.date-color-1) { background-color: #e8f8e8; } /* 淡绿 */
+.right-table-container :deep(.date-color-2) { background-color: #fff4e6; } /* 淡橙 */
+.right-table-container :deep(.date-color-3) { background-color: #f3e8fd; } /* 淡紫 */
+.right-table-container :deep(.date-color-4) { background-color: #e6f7f7; } /* 淡青 */
+.right-table-container :deep(.date-color-5) { background-color: #fde8f0; } /* 淡粉 */
+.right-table-container :deep(.date-color-6) { background-color: #fdfde8; } /* 淡黄 */
+.right-table-container :deep(.date-color-7) { background-color: #f5f5f5; } /* 淡灰 */
+
+.right-table-container :deep(.date-color-0):hover > td { background-color: #d4ebfc !important; }
+.right-table-container :deep(.date-color-1):hover > td { background-color: #d4f0d4 !important; }
+.right-table-container :deep(.date-color-2):hover > td { background-color: #ffe8cc !important; }
+.right-table-container :deep(.date-color-3):hover > td { background-color: #e8d4fc !important; }
+.right-table-container :deep(.date-color-4):hover > td { background-color: #ccefef !important; }
+.right-table-container :deep(.date-color-5):hover > td { background-color: #fcd4e4 !important; }
+.right-table-container :deep(.date-color-6):hover > td { background-color: #fcfcd4 !important; }
+.right-table-container :deep(.date-color-7):hover > td { background-color: #e8e8e8 !important; }
+
+.right-table-container :deep([class^="date-color-"] > td) {
+  background-color: inherit !important;
 }
 </style>
