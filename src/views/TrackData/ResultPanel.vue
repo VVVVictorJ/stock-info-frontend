@@ -349,7 +349,7 @@ const dateColorMap = computed(() => {
 function getRightRowClassName({ row }: { row: TrackDetailItem }): string {
   const date = extractDate(row.created_at)
   const colorIndex = dateColorMap.value.get(date) ?? 0
-  return dateColors[colorIndex % dateColors.length]
+  return dateColors[colorIndex % dateColors.length] ?? 'date-color-0'
 }
 </script>
 
