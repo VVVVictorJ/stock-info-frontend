@@ -186,7 +186,7 @@
             </el-table-column>
             <el-table-column prop="main_force_inflow" label="主力资金流入" min-width="140" sortable align="right">
               <template #default="{ row }">
-                <span class="highlight">
+                <span :class="getMainForceClass(row.main_force_inflow)">
                   {{ formatNumber(row.main_force_inflow) }}
                 </span>
               </template>
@@ -264,6 +264,13 @@ function buildQuoteLink(codeVal: unknown): string {
   if (!code) return 'https://quote.eastmoney.com'
   const prefix = code.startsWith('6') ? 'sh' : 'sz'
   return `https://quote.eastmoney.com/${prefix}${code}.html`
+}
+
+// 主力资金流入颜色：正数红色，负数绿色
+function getMainForceClass(value: string | number): string {
+  const num = typeof value === 'string' ? parseFloat(value) : value
+  if (isNaN(num)) return 'main-force-neutral'
+  return num >= 0 ? 'main-force-positive' : 'main-force-negative'
 }
 </script>
 
@@ -485,6 +492,22 @@ function buildQuoteLink(codeVal: unknown): string {
 
 .highlight {
   color: #e6a23c;
+  font-weight: 600;
+}
+
+/* 主力资金流入颜色 */
+.main-force-positive {
+  color: rgb(238, 0, 0);
+  font-weight: 600;
+}
+
+.main-force-negative {
+  color: rgb(0, 139, 0);
+  font-weight: 600;
+}
+
+.main-force-neutral {
+  color: #909399;
   font-weight: 600;
 }
 
