@@ -120,15 +120,15 @@ const filteredData = computed(() => {
     return true
   }
 
-  // 追踪标签筛选
+  // 追踪标签筛选（14天≥3次，7天≥2次，3天≥2次）
   if (filterTrackTag.value) {
     data = data.filter(item => {
       if (filterTrackTag.value === 'days_14') {
         return item.occurrence_stats.days_14 >= 3
       } else if (filterTrackTag.value === 'days_7') {
-        return item.occurrence_stats.days_7 >= 3
+        return item.occurrence_stats.days_7 >= 2
       } else if (filterTrackTag.value === 'days_3') {
-        return item.occurrence_stats.days_3 >= 3
+        return item.occurrence_stats.days_3 >= 2
       }
       return true
     })
@@ -292,7 +292,7 @@ async function handleQuery() {
     allData.value = res.data
 
     if (!res.data || res.data.length === 0) {
-      errorMessage.value = '未查询到符合条件的股票（过去3/7/14天内出现至少3次）'
+      errorMessage.value = '未查询到符合条件的股票（14天≥3次 或 7天≥2次 或 3天≥2次）'
       allData.value = []
     } else {
       // 自动选中第一条

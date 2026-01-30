@@ -11,8 +11,8 @@
           style="width: 140px"
         >
           <el-option label="14天≥3次" value="days_14" />
-          <el-option label="7天≥3次" value="days_7" />
-          <el-option label="3天≥3次" value="days_3" />
+          <el-option label="7天≥2次" value="days_7" />
+          <el-option label="3天≥2次" value="days_3" />
         </el-select>
       </div>
       <div class="filter-input">
@@ -66,7 +66,7 @@
     <div class="split-container">
       <!-- 左侧：股票列表（去重） -->
       <div class="left-panel">
-        <div class="panel-title">股票列表（过去出现≥3次）</div>
+        <div class="panel-title">股票列表（14天≥3次/7天≥2次/3天≥2次）</div>
         <div class="left-table-container">
           <el-table
             :data="leftTableData"
@@ -123,7 +123,7 @@
                     14天{{ row.occurrence_stats.days_14 }}次
                   </el-tag>
                   <el-tag
-                    v-if="row.occurrence_stats.days_7 >= 3"
+                    v-if="row.occurrence_stats.days_7 >= 2"
                     type="warning"
                     size="small"
                     effect="plain"
@@ -132,7 +132,7 @@
                     7天{{ row.occurrence_stats.days_7 }}次
                   </el-tag>
                   <el-tag
-                    v-if="row.occurrence_stats.days_3 >= 3"
+                    v-if="row.occurrence_stats.days_3 >= 2"
                     type="success"
                     size="small"
                     effect="plain"
