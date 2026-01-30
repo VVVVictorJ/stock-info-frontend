@@ -173,6 +173,13 @@
             {{ selectedStockCode }} 历史出现记录
           </span>
           <span v-else>请选择股票</span>
+          <span 
+            v-if="selectedStockCode && closePriceDiff !== null" 
+            class="close-price-diff"
+            :class="getClosePriceDiffClass(closePriceDiff)"
+          >
+            收盘价差：{{ closePriceDiff >= 0 ? '+' : '' }}{{ closePriceDiff.toFixed(2) }}
+          </span>
           <div v-if="selectedStockCode" class="track-days-selector">
             <span class="selector-label">查看范围:</span>
             <el-radio-group
@@ -320,6 +327,31 @@ function getMainForceClass(value: string | number): string {
   return num >= 0 ? 'main-force-positive' : 'main-force-negative'
 }
 
+// 计算收盘价差（最新的 - 最早的）
+// 数据按 created_at DESC 排序，data[0] 是最新的，data[length-1] 是最早的
+const closePriceDiff = computed(() => {
+  const data = props.rightTableData
+  if (!data || data.length < 2) return null
+  
+  const latestPrice = data[0]?.close_price  // 最新的记录
+  const earliestPrice = data[data.length - 1]?.close_price  // 最早的记录
+  
+  if (!latestPrice || !earliestPrice) return null
+  
+  const latest = parseFloat(latestPrice)
+  const earliest = parseFloat(earliestPrice)
+  
+  if (isNaN(latest) || isNaN(earliest)) return null
+  
+  return latest - earliest
+})
+
+// 获取收盘价差的样式类
+function getClosePriceDiffClass(diff: number | null): string {
+  if (diff === null) return ''
+  return diff >= 0 ? 'price-diff-positive' : 'price-diff-negative'
+}
+
 // 提取日期部分（YYYY-MM-DD）
 function extractDate(dateTimeStr: string): string {
   if (!dateTimeStr) return ''
@@ -454,6 +486,21 @@ function getRightRowClassName({ row }: { row: TrackDetailItem }): string {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
+}
+
+.close-price-diff {
+  font-weight: 600;
+  font-size: 13px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.price-diff-positive {
+  color: rgb(238, 0, 0);
+}
+
+.price-diff-negative {
+  color: rgb(0, 139, 0);
 }
 
 .track-days-selector {
