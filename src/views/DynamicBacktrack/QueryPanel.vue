@@ -67,7 +67,7 @@
             <el-slider
               :model-value="minOccurrences"
               @update:model-value="$emit('update:minOccurrences', $event)"
-              :min="1"
+              :min="2"
               :max="10"
               show-input
               :show-input-controls="false"
