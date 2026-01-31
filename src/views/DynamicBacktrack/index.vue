@@ -27,7 +27,7 @@
 
 <script setup lang="ts">
 import { ref, onMounted, computed, watch } from 'vue'
-import { fetchDynamicBacktrack, fetchTrackDetail } from '@/api/stock'
+import { fetchDynamicBacktrack, fetchDynamicBacktrackDetail } from '@/api/stock'
 import type { DynamicBacktrackResponse, DynamicBacktrackItem } from '@/types/dynamicBacktrack'
 import type { TrackDetailItem } from '@/types/trackQuery'
 import QueryPanel from './QueryPanel.vue'
@@ -143,25 +143,16 @@ watch([selectedStockCode, queryDate, tradeDays], async ([newCode, _newDate, _new
   await loadDetailData(newCode as string)
 })
 
-// 将tradeDays映射到最接近的3/7/14值（因为API只支持这些值）
-function mapTradeDaysToSupported(days: number): number {
-  if (days <= 3) return 3
-  if (days <= 7) return 7
-  return 14
-}
-
-// 加载选中股票的明细数据
+// 加载选中股票的明细数据（使用动态天数）
 async function loadDetailData(stockCode: string) {
   if (!stockCode || !queryDate.value) return
 
   isLoadingDetail.value = true
   try {
-    // 使用最接近的3/7/14值来查询明细
-    const supportedDays = mapTradeDaysToSupported(tradeDays.value)
-    const res = await fetchTrackDetail({
+    const res = await fetchDynamicBacktrackDetail({
       stock_code: stockCode,
       trade_date: queryDate.value,
-      track_days: supportedDays,
+      trade_days: tradeDays.value,
     })
     detailData.value = res.data
   } catch (err) {

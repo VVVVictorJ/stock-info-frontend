@@ -29,3 +29,13 @@ export interface DynamicBacktrackResponse {
   data: DynamicBacktrackItem[]
   total: number
 }
+
+// 动态回溯明细查询请求参数
+export interface DynamicBacktrackDetailRequest {
+  stock_code: string
+  trade_date: string
+  trade_days: number
+}
+
+// 动态回溯明细查询响应（复用 TrackDetailResponse）
+export type { TrackDetailItem, TrackDetailResponse } from './trackQuery'

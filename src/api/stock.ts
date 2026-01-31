@@ -17,6 +17,8 @@ import type {
 import type {
   DynamicBacktrackRequest,
   DynamicBacktrackResponse,
+  DynamicBacktrackDetailRequest,
+  TrackDetailResponse,
 } from '@/types/dynamicBacktrack'
 
 /**
@@ -72,4 +74,9 @@ export async function fetchTrackDetail(params: TrackDetailRequest) {
 // 动态回溯查询（后端路径：/stock-dynamic-backtrack）
 export async function fetchDynamicBacktrack(params: DynamicBacktrackRequest) {
   return http.post<DynamicBacktrackResponse>('/stock-dynamic-backtrack', params)
+}
+
+// 动态回溯明细查询（后端路径：/stock-dynamic-backtrack/detail）
+export async function fetchDynamicBacktrackDetail(params: DynamicBacktrackDetailRequest) {
+  return http.post<TrackDetailResponse>('/stock-dynamic-backtrack/detail', params)
 }
