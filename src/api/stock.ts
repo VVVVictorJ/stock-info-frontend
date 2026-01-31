@@ -18,8 +18,8 @@ import type {
   DynamicBacktrackRequest,
   DynamicBacktrackResponse,
   DynamicBacktrackDetailRequest,
-  TrackDetailResponse,
 } from '@/types/dynamicBacktrack'
+import type { TrackDetailResponse } from '@/types/trackQuery'
 
 /**
  * 查询单只股票信息

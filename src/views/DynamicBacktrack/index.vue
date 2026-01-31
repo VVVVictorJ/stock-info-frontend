@@ -18,7 +18,7 @@
       v-model:selected-stock-code="selectedStockCode"
       :filtered-total="filteredTotal"
       :loading="loading || isLoadingDetail"
-      :has-data="!!responseData && responseData.length > 0"
+      :has-data="!!responseData && responseData.data.length > 0"
       :query-date="queryDate"
       :trade-days="tradeDays"
     />
