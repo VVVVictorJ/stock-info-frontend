@@ -15,6 +15,7 @@
       :left-table-data="leftTableData"
       :right-table-data="rightTableData"
       v-model:filter-stock-code="filterStockCode"
+      v-model:filter-occurrence-count="filterOccurrenceCount"
       v-model:selected-stock-code="selectedStockCode"
       :filtered-total="filteredTotal"
       :loading="loading || isLoadingDetail"
@@ -44,6 +45,8 @@ const isLoadingDetail = ref(false)
 
 // 股票代码筛选
 const filterStockCode = ref('')
+// 出现次数筛选
+const filterOccurrenceCount = ref<number | null>(null)
 // 板块筛选（多选）
 const filterPlates = ref<string[]>([])
 // 全量数据存储（用于筛选）
@@ -93,6 +96,13 @@ const filteredData = computed(() => {
     const keyword = filterStockCode.value.trim().toLowerCase()
     data = data.filter(item =>
       item.stock_code.toLowerCase().includes(keyword)
+    )
+  }
+
+  // 根据出现次数筛选
+  if (filterOccurrenceCount.value !== null) {
+    data = data.filter(item =>
+      item.occurrence_count >= filterOccurrenceCount.value!
     )
   }
 
@@ -185,6 +195,7 @@ async function handleQuery() {
 
   // 清空筛选条件
   filterStockCode.value = ''
+  filterOccurrenceCount.value = null
   filterPlates.value = []
   selectedStockCode.value = ''
   detailData.value = []

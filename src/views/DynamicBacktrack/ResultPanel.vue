@@ -2,6 +2,22 @@
   <ResultCard title="查询结果">
     <template #header-right>
       <div class="filter-input">
+        <span class="filter-label">出现次数:</span>
+        <el-select
+          :model-value="filterOccurrenceCount"
+          @update:model-value="$emit('update:filterOccurrenceCount', $event)"
+          placeholder="全部"
+          clearable
+          style="width: 140px"
+        >
+          <el-option label="≥1次" :value="1" />
+          <el-option label="≥2次" :value="2" />
+          <el-option label="≥3次" :value="3" />
+          <el-option label="≥4次" :value="4" />
+          <el-option label="≥5次" :value="5" />
+        </el-select>
+      </div>
+      <div class="filter-input">
         <span class="filter-label">股票代码:</span>
         <el-input
           :model-value="filterStockCode"
@@ -11,6 +27,25 @@
           style="width: 180px"
         />
       </div>
+      <el-popover placement="bottom-end" trigger="click" popper-class="column-config-popper">
+        <template #reference>
+          <el-button class="column-config-button" size="small" circle>
+            <el-icon><Setting /></el-icon>
+          </el-button>
+        </template>
+        <div class="column-config">
+          <div class="column-config-title">显示列</div>
+          <el-checkbox-group v-model="visibleColumns">
+            <el-checkbox
+              v-for="column in columnOptions"
+              :key="column.key"
+              :label="column.key"
+            >
+              {{ column.label }}
+            </el-checkbox>
+          </el-checkbox-group>
+        </div>
+      </el-popover>
       <span v-if="hasData" class="result-stats">
         共 {{ filteredTotal }} 只股票
       </span>
@@ -32,6 +67,7 @@
             :row-class-name="getRowClassName"
           >
             <el-table-column
+              v-if="isColumnVisible('stock_code')"
               prop="stock_code"
               label="股票代码"
               min-width="100"
@@ -51,12 +87,14 @@
               </template>
             </el-table-column>
             <el-table-column
+              v-if="isColumnVisible('stock_name')"
               prop="stock_name"
               label="股票名称"
               min-width="100"
               sortable
             />
             <el-table-column
+              v-if="isColumnVisible('occurrence_count')"
               prop="occurrence_count"
               label="出现次数"
               min-width="100"
@@ -69,7 +107,7 @@
                 </el-tag>
               </template>
             </el-table-column>
-            <el-table-column v-if="hasPlates" label="板块" min-width="200">
+            <el-table-column v-if="hasPlates && isColumnVisible('plates')" label="板块" min-width="200">
               <template #default="{ row }">
                 <div v-if="row.plates && row.plates.length" class="plate-tags">
                   <el-tag
@@ -170,17 +208,19 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
 import type { DynamicBacktrackItem } from '@/types/dynamicBacktrack'
 import type { TrackDetailItem } from '@/types/trackQuery'
+import { Setting } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   leftTableData: DynamicBacktrackItem[]
   rightTableData: TrackDetailItem[]
   filterStockCode: string
+  filterOccurrenceCount: number | null
   selectedStockCode: string
   filteredTotal: number
   loading: boolean
@@ -191,8 +231,22 @@ const props = defineProps<{
 
 const emit = defineEmits<{
   'update:filterStockCode': [value: string]
+  'update:filterOccurrenceCount': [value: number | null]
   'update:selectedStockCode': [value: string]
 }>()
+
+const columnOptions = [
+  { key: 'stock_code', label: '股票代码' },
+  { key: 'stock_name', label: '股票名称' },
+  { key: 'occurrence_count', label: '出现次数' },
+  { key: 'plates', label: '板块' },
+]
+
+const visibleColumns = ref(columnOptions.map(option => option.key))
+
+function isColumnVisible(key: string) {
+  return visibleColumns.value.includes(key)
+}
 
 // 检查是否有板块数据
 const hasPlates = computed(() => {
@@ -280,6 +334,35 @@ function getRightRowClassName({ row }: { row: TrackDetailItem }): string {
   font-weight: normal;
   color: var(--el-text-color-secondary);
   white-space: nowrap;
+}
+
+.column-config-button {
+  margin-left: 4px;
+}
+
+.column-config {
+  min-width: 160px;
+  max-width: 220px;
+  max-height: 260px;
+  overflow: auto;
+}
+
+.column-config-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--el-text-color-primary);
+  margin-bottom: 6px;
+}
+
+.column-config :deep(.el-checkbox-group) {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+:global(.column-config-popper) {
+  max-width: 240px;
+  overflow: hidden;
 }
 
 /* 左右分栏容器 */
