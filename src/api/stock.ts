@@ -14,6 +14,10 @@ import type {
   TrackDetailRequest,
   TrackDetailResponse,
 } from '@/types/trackQuery'
+import type {
+  DynamicBacktrackRequest,
+  DynamicBacktrackResponse,
+} from '@/types/dynamicBacktrack'
 
 /**
  * 查询单只股票信息
@@ -63,4 +67,9 @@ export async function fetchTrackQuery(params: TrackQueryRequest) {
 // 追踪明细查询（后端路径：/stock-track-query/detail）
 export async function fetchTrackDetail(params: TrackDetailRequest) {
   return http.post<TrackDetailResponse>('/stock-track-query/detail', params)
+}
+
+// 动态回溯查询（后端路径：/stock-dynamic-backtrack）
+export async function fetchDynamicBacktrack(params: DynamicBacktrackRequest) {
+  return http.post<DynamicBacktrackResponse>('/stock-dynamic-backtrack', params)
 }
