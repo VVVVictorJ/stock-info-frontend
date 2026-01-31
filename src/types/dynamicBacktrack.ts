@@ -37,5 +37,5 @@ export interface DynamicBacktrackDetailRequest {
   trade_days: number
 }
 
-// 动态回溯明细查询响应（复用 TrackDetailResponse）
-export type { TrackDetailItem, TrackDetailResponse } from './trackQuery'
+// 动态回溯明细查询响应类型（从 trackQuery 导入）
+// 注意：实际使用时请从 '@/types/trackQuery' 导入 TrackDetailItem 和 TrackDetailResponse
