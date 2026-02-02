@@ -75,6 +75,23 @@
             :row-class-name="getRowClassName"
           >
             <el-table-column
+              label="操作"
+              width="60"
+              align="center"
+              fixed="left"
+            >
+              <template #default="{ row }">
+                <el-button
+                  :icon="isWatched(row.stock_code) ? Minus : Plus"
+                  size="small"
+                  :type="isWatched(row.stock_code) ? 'danger' : 'primary'"
+                  @click.stop="handleToggleWatch(row)"
+                  :title="isWatched(row.stock_code) ? '移除观察' : '加入观察'"
+                  class="watch-button"
+                />
+              </template>
+            </el-table-column>
+            <el-table-column
               v-if="isColumnVisible('stock_code')"
               prop="stock_code"
               label="股票代码"
@@ -212,7 +229,7 @@ import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
 import type { TradeDateQueryItem } from '@/types/tradeDateQuery'
-import { Refresh, Setting } from '@element-plus/icons-vue'
+import { Refresh, Setting, Plus, Minus } from '@element-plus/icons-vue'
 
 const props = defineProps<{
   leftTableData: TradeDateQueryItem[]
@@ -225,6 +242,7 @@ const props = defineProps<{
   hasData: boolean
   refreshing: boolean
   newStockCodes: string[]
+  watchedStocks: Set<string>
 }>()
 
 const emit = defineEmits<{
@@ -232,6 +250,7 @@ const emit = defineEmits<{
   'update:filterTrendStatus': [value: string]
   'update:selectedStockCode': [value: string]
   'refresh-plates': []
+  'toggle-watch': [stockCode: string, stockName: string]
 }>()
 
 const columnOptions = [
@@ -271,6 +290,14 @@ function getMainForceClass(value: string | number): string {
   const num = typeof value === 'string' ? parseFloat(value) : value
   if (isNaN(num)) return 'main-force-neutral'
   return num >= 0 ? 'main-force-positive' : 'main-force-negative'
+}
+
+function isWatched(stockCode: string): boolean {
+  return props.watchedStocks.has(stockCode)
+}
+
+function handleToggleWatch(row: TradeDateQueryItem) {
+  emit('toggle-watch', row.stock_code, row.stock_name)
 }
 </script>
 
@@ -524,5 +551,15 @@ function getMainForceClass(value: string | number): string {
 
 .trend-flat {
   color: #909399;
+}
+
+/* 观察按钮样式 - 正方形 */
+.watch-button {
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 }
 </style>
