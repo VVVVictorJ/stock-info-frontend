@@ -24,17 +24,20 @@
       :has-data="!!responseData"
       :refreshing="isRefreshingPlates"
       :new-stock-codes="newStockCodes"
+      :watched-stocks="watchedStocks"
       @refresh-plates="handleRefreshPlates"
+      @toggle-watch="handleToggleWatch"
     />
   </div>
 </template>
 
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
-import { fetchTradeDateQuery, refreshTradeDatePlates } from '@/api/stock'
+import { fetchTradeDateQuery, refreshTradeDatePlates, addToWatchlist, removeFromWatchlist, batchCheckWatchlist } from '@/api/stock'
 import type { TradeDateQueryResponse, TradeDateQueryItem } from '@/types/tradeDateQuery'
 import { getPriceTrend } from '@/utils/priceStyles'
 import { useDailyHistoryStore } from '@/store/daily-history/dailyHistory'
+import { ElMessage } from 'element-plus'
 import QueryPanel from './QueryPanel.vue'
 import ResultPanel from './ResultPanel.vue'
 
@@ -88,6 +91,8 @@ const allData = ref<TradeDateQueryItem[]>([])
 const isLoadingAll = ref(false)
 // 当前选中的股票代码
 const selectedStockCode = ref('')
+// 已观察的股票代码集合
+const watchedStocks = ref<Set<string>>(new Set())
 
 // 初始化日期为今天
 onMounted(() => {
@@ -334,6 +339,9 @@ async function handleQuery() {
       if (leftTableData.value.length > 0) {
         selectedStockCode.value = leftTableData.value[0]?.stock_code || ''
       }
+
+      // 批量检查观察状态
+      await checkWatchlistStatus()
     }
   } catch (err: any) {
     errorMessage.value = err?.message || '查询失败'
@@ -441,6 +449,43 @@ function toggleAutoQuery() {
     stopAutoQuery()
   } else {
     startAutoQuery()
+  }
+}
+
+// 批量检查观察状态
+async function checkWatchlistStatus() {
+  if (leftTableData.value.length === 0) return
+
+  try {
+    const stockCodes = leftTableData.value.map(item => item.stock_code)
+    const response = await batchCheckWatchlist({ stock_codes: stockCodes })
+    watchedStocks.value = new Set(response.watched_codes)
+  } catch (err: any) {
+    console.error('Failed to check watchlist status:', err)
+  }
+}
+
+// 切换观察状态
+async function handleToggleWatch(stockCode: string, stockName: string) {
+  const isWatched = watchedStocks.value.has(stockCode)
+
+  try {
+    if (isWatched) {
+      // 移除观察
+      await removeFromWatchlist(stockCode)
+      watchedStocks.value.delete(stockCode)
+      ElMessage.success(`已移除 ${stockCode} ${stockName}`)
+    } else {
+      // 添加观察
+      await addToWatchlist({
+        stock_code: stockCode,
+        stock_name: stockName,
+      })
+      watchedStocks.value.add(stockCode)
+      ElMessage.success(`已添加 ${stockCode} ${stockName} 到观察表`)
+    }
+  } catch (err: any) {
+    ElMessage.error(err?.message || (isWatched ? '移除失败' : '添加失败'))
   }
 }
 </script>

@@ -19,6 +19,13 @@ import type {
   DynamicBacktrackResponse,
   DynamicBacktrackDetailRequest,
 } from '@/types/dynamicBacktrack'
+import type {
+  AddWatchlistRequest,
+  WatchlistResponse,
+  CheckWatchlistResponse,
+  BatchCheckWatchlistRequest,
+  BatchCheckWatchlistResponse,
+} from '@/types/stockWatchlist'
 
 /**
  * 查询单只股票信息
@@ -78,4 +85,29 @@ export async function fetchDynamicBacktrack(params: DynamicBacktrackRequest) {
 // 动态回溯明细查询（后端路径：/stock-dynamic-backtrack/detail）
 export async function fetchDynamicBacktrackDetail(params: DynamicBacktrackDetailRequest) {
   return http.post<TrackDetailResponse>('/stock-dynamic-backtrack/detail', params)
+}
+
+// 添加股票到观察表（后端路径：/stock-watchlist）
+export async function addToWatchlist(params: AddWatchlistRequest) {
+  return http.post<WatchlistResponse>('/stock-watchlist', params)
+}
+
+// 从观察表移除股票（后端路径：/stock-watchlist/:stock_code）
+export async function removeFromWatchlist(stockCode: string) {
+  return http.delete(`/stock-watchlist/${stockCode}`)
+}
+
+// 检查股票是否在观察表中（后端路径：/stock-watchlist/check/:stock_code）
+export async function checkWatchlist(stockCode: string) {
+  return http.get<CheckWatchlistResponse>(`/stock-watchlist/check/${stockCode}`)
+}
+
+// 批量检查股票是否在观察表中（后端路径：/stock-watchlist/batch-check）
+export async function batchCheckWatchlist(params: BatchCheckWatchlistRequest) {
+  return http.post<BatchCheckWatchlistResponse>('/stock-watchlist/batch-check', params)
+}
+
+// 获取所有观察的股票（后端路径：/stock-watchlist）
+export async function listWatchlist() {
+  return http.get<WatchlistResponse[]>('/stock-watchlist')
 }
