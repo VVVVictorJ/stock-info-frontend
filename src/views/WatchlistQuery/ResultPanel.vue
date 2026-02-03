@@ -15,13 +15,22 @@
         共 {{ filteredTotal }} 只股票
       </span>
       <el-button
+        v-if="hasData && selectedStockCode"
+        type="success"
+        size="small"
+        :loading="fillingCurrentKline"
+        @click="handleFillCurrentStockKline"
+      >
+        补齐当前股票K线
+      </el-button>
+      <el-button
         v-if="hasData"
         type="primary"
         size="small"
         :loading="fillingKlines"
         @click="handleFillKlines"
       >
-        补齐K线数据
+        批量补齐K线数据
       </el-button>
     </template>
 
@@ -382,13 +391,73 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
 
 // 补齐K线数据相关
 const fillingKlines = ref(false)
+const fillingCurrentKline = ref(false)
 
-// 处理补齐K线数据
+// 处理补齐当前股票的K线数据
+async function handleFillCurrentStockKline() {
+  if (!props.selectedStockCode) {
+    ElMessage.warning('请先选择一只股票')
+    return
+  }
+
+  try {
+    const result = await ElMessageBox.confirm(
+      `确定要补齐股票 ${props.selectedStockCode} 的K线数据吗？`,
+      '补齐当前股票K线',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    )
+    if (result !== 'confirm') {
+      return
+    }
+  } catch {
+    // 用户取消
+    return
+  }
+
+  fillingCurrentKline.value = true
+  try {
+    const res = await fillWatchlistKlines({
+      stock_codes: [props.selectedStockCode],
+    })
+    const { total_stocks, success_count, failed_count, skipped_count, stock_details } = res
+
+    let message = `补齐完成！\n`
+    message += `股票代码: ${props.selectedStockCode}\n`
+    if (stock_details.length > 0) {
+      const detail = stock_details[0]
+      if (detail) {
+        message += `导入条数: ${detail.imported_count}\n`
+        if (detail.error) {
+          message += `提示: ${detail.error}`
+        }
+      }
+    }
+
+    if (failed_count > 0) {
+      ElMessage.warning(message)
+    } else {
+      ElMessage.success(message)
+    }
+
+    // 补齐完成后自动刷新
+    emit('refresh')
+  } catch (err: any) {
+    ElMessage.error(`补齐K线数据失败: ${err?.message || '未知错误'}`)
+  } finally {
+    fillingCurrentKline.value = false
+  }
+}
+
+// 处理批量补齐K线数据
 async function handleFillKlines() {
   try {
     const result = await ElMessageBox.confirm(
       '确定要补齐所有观察表中股票的K线数据吗？此操作可能需要较长时间。',
-      '补齐K线数据',
+      '批量补齐K线数据',
       {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
@@ -419,7 +488,7 @@ async function handleFillKlines() {
     } else {
       ElMessage.success(message)
     }
-    
+
     // 补齐完成后自动刷新
     emit('refresh')
   } catch (err: any) {

@@ -94,7 +94,8 @@ export interface WatchlistKlineResponse {
 
 // 补齐观察表K线数据请求
 export interface WatchlistFillKlineRequest {
-  // 可以为空
+  // 股票代码列表（可选），如果为空则补齐所有观察表中的股票
+  stock_codes?: string[] | null
 }
 
 // 股票补齐K线数据详情
