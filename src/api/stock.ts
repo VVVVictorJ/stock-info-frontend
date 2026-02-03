@@ -33,6 +33,8 @@ import type {
   WatchlistDetailResponse,
   WatchlistKlineRequest,
   WatchlistKlineResponse,
+  WatchlistFillKlineRequest,
+  WatchlistFillKlineResponse,
 } from '@/types/watchlistQuery'
 
 /**
@@ -133,4 +135,9 @@ export async function fetchWatchlistDetail(params: WatchlistDetailRequest) {
 // 观察表K线查询（后端路径：/stock-watchlist-query/kline）
 export async function fetchWatchlistKline(params: WatchlistKlineRequest) {
   return http.post<WatchlistKlineResponse>('/stock-watchlist-query/kline', params)
+}
+
+// 补齐观察表K线数据（后端路径：/stock-watchlist-query/fill-klines）
+export async function fillWatchlistKlines(params: WatchlistFillKlineRequest = {}) {
+  return http.post<WatchlistFillKlineResponse>('/stock-watchlist-query/fill-klines', params)
 }

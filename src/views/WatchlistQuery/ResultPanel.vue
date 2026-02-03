@@ -14,6 +14,15 @@
       <span v-if="hasData" class="result-stats">
         共 {{ filteredTotal }} 只股票
       </span>
+      <el-button
+        v-if="hasData"
+        type="primary"
+        size="small"
+        :loading="fillingKlines"
+        @click="handleFillKlines"
+      >
+        补齐K线数据
+      </el-button>
     </template>
 
     <div class="split-container" ref="splitContainerRef">
@@ -232,9 +241,11 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
+import { fillWatchlistKlines } from '@/api/stock'
 import type { WatchlistQueryItem, WatchlistDetailItem, WatchlistKlineItem } from '@/types/watchlistQuery'
 
 const props = defineProps<{
@@ -366,6 +377,52 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
   const date = extractDate(row.created_at)
   const colorIndex = middleDateColorMap.value.get(date) ?? 0
   return dateColors[colorIndex % dateColors.length] ?? 'date-color-0'
+}
+
+// 补齐K线数据相关
+const fillingKlines = ref(false)
+
+// 处理补齐K线数据
+async function handleFillKlines() {
+  try {
+    const result = await ElMessageBox.confirm(
+      '确定要补齐所有观察表中股票的K线数据吗？此操作可能需要较长时间。',
+      '补齐K线数据',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    )
+    if (result !== 'confirm') {
+      return
+    }
+  } catch {
+    // 用户取消
+    return
+  }
+
+  fillingKlines.value = true
+  try {
+    const res = await fillWatchlistKlines({})
+    const { total_stocks, success_count, failed_count, skipped_count } = res
+
+    let message = `补齐完成！\n`
+    message += `总股票数: ${total_stocks}\n`
+    message += `成功: ${success_count}\n`
+    message += `失败: ${failed_count}\n`
+    message += `跳过: ${skipped_count}`
+
+    if (failed_count > 0) {
+      ElMessage.warning(message)
+    } else {
+      ElMessage.success(message)
+    }
+  } catch (err: any) {
+    ElMessage.error(`补齐K线数据失败: ${err?.message || '未知错误'}`)
+  } finally {
+    fillingKlines.value = false
+  }
 }
 
 // 拖动调整宽度相关
