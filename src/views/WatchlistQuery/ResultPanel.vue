@@ -91,6 +91,7 @@
           <el-table
             v-if="selectedStockCode"
             :data="middleTableData"
+            :row-class-name="getMiddleRowClassName"
             style="width: 100%"
             height="100%"
             v-loading="loadingDetail"
@@ -176,6 +177,18 @@
             v-loading="loadingKline"
           >
             <el-table-column prop="trade_date" label="交易日期" min-width="110" sortable />
+            <el-table-column label="成交量变化比例" min-width="130" sortable align="right">
+              <template #default="{ row, $index }">
+                <span :class="getVolumeChangeClass(row, $index)">
+                  {{ getVolumeChangeRatio(row, $index) }}
+                </span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="volume" label="成交量" min-width="120" sortable align="right">
+              <template #default="{ row }">
+                {{ formatNumber(row.volume) }}
+              </template>
+            </el-table-column>
             <el-table-column prop="open_price" label="开盘价" min-width="90" sortable align="right">
               <template #default="{ row }">
                 {{ formatNumber(row.open_price) }}
@@ -194,11 +207,6 @@
             <el-table-column prop="close_price" label="收盘价" min-width="90" sortable align="right">
               <template #default="{ row }">
                 {{ formatNumber(row.close_price) }}
-              </template>
-            </el-table-column>
-            <el-table-column prop="volume" label="成交量" min-width="120" sortable align="right">
-              <template #default="{ row }">
-                {{ formatNumber(row.volume) }}
               </template>
             </el-table-column>
             <el-table-column prop="amount" label="成交额" min-width="120" sortable align="right">
@@ -270,6 +278,88 @@ const klineDateRange = computed(() => {
   if (!props.klineStartDate || !props.klineEndDate) return null
   return `${props.klineStartDate} ~ ${props.klineEndDate}`
 })
+
+// 获取基准成交量（最早的数据，第一条记录）
+const baseVolume = computed(() => {
+  if (!props.rightTableData || props.rightTableData.length === 0) return null
+  const firstItem = props.rightTableData[0]
+  const volume = typeof firstItem.volume === 'string' ? parseFloat(firstItem.volume) : firstItem.volume
+  return isNaN(volume) ? null : volume
+})
+
+// 计算成交量变化比例
+function getVolumeChangeRatio(row: WatchlistKlineItem, index: number): string {
+  // 第一条数据（基准）显示 "-"
+  if (index === 0) return '-'
+
+  // 如果没有基准成交量，显示 "-"
+  if (baseVolume.value === null || baseVolume.value === 0) return '-'
+
+  const currentVolume = typeof row.volume === 'string' ? parseFloat(row.volume) : row.volume
+  if (isNaN(currentVolume)) return '-'
+
+  // 计算变化比例：(当前成交量 - 基准成交量) / 基准成交量 * 100%
+  const changeRatio = ((currentVolume - baseVolume.value) / baseVolume.value) * 100
+  const sign = changeRatio >= 0 ? '+' : ''
+  return `${sign}${changeRatio.toFixed(2)}%`
+}
+
+// 获取成交量变化比例的样式类
+function getVolumeChangeClass(row: WatchlistKlineItem, index: number): string {
+  // 第一条数据（基准）不显示颜色
+  if (index === 0) return ''
+
+  // 如果没有基准成交量，不显示颜色
+  if (baseVolume.value === null || baseVolume.value === 0) return ''
+
+  const currentVolume = typeof row.volume === 'string' ? parseFloat(row.volume) : row.volume
+  if (isNaN(currentVolume)) return ''
+
+  // 计算变化比例
+  const changeRatio = ((currentVolume - baseVolume.value) / baseVolume.value) * 100
+  if (changeRatio > 0) return 'volume-change-positive'
+  if (changeRatio < 0) return 'volume-change-negative'
+  return ''
+}
+
+// 提取日期部分（YYYY-MM-DD）
+function extractDate(dateTimeStr: string): string {
+  if (!dateTimeStr) return ''
+  return dateTimeStr.split('T')[0] || dateTimeStr.substring(0, 10)
+}
+
+// 日期颜色序列（柔和的颜色）
+const dateColors = [
+  'date-color-0',  // 淡蓝
+  'date-color-1',  // 淡绿
+  'date-color-2',  // 淡橙
+  'date-color-3',  // 淡紫
+  'date-color-4',  // 淡青
+  'date-color-5',  // 淡粉
+  'date-color-6',  // 淡黄
+  'date-color-7',  // 淡灰
+]
+
+// 构建日期到颜色索引的映射（用于中间面板的时间序列明细）
+const middleDateColorMap = computed(() => {
+  const map = new Map<string, number>()
+  let colorIndex = 0
+  for (const item of props.middleTableData) {
+    const date = extractDate(item.created_at)
+    if (!map.has(date)) {
+      map.set(date, colorIndex)
+      colorIndex++
+    }
+  }
+  return map
+})
+
+// 中间表格行样式（不同天使用不同颜色）
+function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
+  const date = extractDate(row.created_at)
+  const colorIndex = middleDateColorMap.value.get(date) ?? 0
+  return dateColors[colorIndex % dateColors.length] ?? 'date-color-0'
+}
 </script>
 
 <style scoped>
@@ -485,5 +575,39 @@ const klineDateRange = computed(() => {
 
 .trend-flat {
   color: #909399;
+}
+
+/* 成交量变化比例颜色 */
+.volume-change-positive {
+  color: #f56c6c;
+  font-weight: 600;
+}
+
+.volume-change-negative {
+  color: #67c23a;
+  font-weight: 600;
+}
+
+/* 中间表格按日期分组的行背景色序列 */
+.middle-table-container :deep(.date-color-0) { background-color: #e8f4fd; } /* 淡蓝 */
+.middle-table-container :deep(.date-color-1) { background-color: #e8f8e8; } /* 淡绿 */
+.middle-table-container :deep(.date-color-2) { background-color: #fff4e6; } /* 淡橙 */
+.middle-table-container :deep(.date-color-3) { background-color: #f3e8fd; } /* 淡紫 */
+.middle-table-container :deep(.date-color-4) { background-color: #e6f7f7; } /* 淡青 */
+.middle-table-container :deep(.date-color-5) { background-color: #fde8f0; } /* 淡粉 */
+.middle-table-container :deep(.date-color-6) { background-color: #fdfde8; } /* 淡黄 */
+.middle-table-container :deep(.date-color-7) { background-color: #f5f5f5; } /* 淡灰 */
+
+.middle-table-container :deep(.date-color-0):hover > td { background-color: #d4ebfc !important; }
+.middle-table-container :deep(.date-color-1):hover > td { background-color: #d4f0d4 !important; }
+.middle-table-container :deep(.date-color-2):hover > td { background-color: #ffe8cc !important; }
+.middle-table-container :deep(.date-color-3):hover > td { background-color: #e8d4fc !important; }
+.middle-table-container :deep(.date-color-4):hover > td { background-color: #ccefef !important; }
+.middle-table-container :deep(.date-color-5):hover > td { background-color: #fcd4e4 !important; }
+.middle-table-container :deep(.date-color-6):hover > td { background-color: #fcfcd4 !important; }
+.middle-table-container :deep(.date-color-7):hover > td { background-color: #e8e8e8 !important; }
+
+.middle-table-container :deep([class^="date-color-"] > td) {
+  background-color: inherit !important;
 }
 </style>
