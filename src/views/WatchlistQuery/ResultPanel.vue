@@ -289,6 +289,7 @@ const klineDateRange = computed(() => {
 const baseVolume = computed(() => {
   if (!props.rightTableData || props.rightTableData.length === 0) return null
   const firstItem = props.rightTableData[0]
+  if (!firstItem) return null
   const volume = typeof firstItem.volume === 'string' ? parseFloat(firstItem.volume) : firstItem.volume
   return isNaN(volume) ? null : volume
 })
