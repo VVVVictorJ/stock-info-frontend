@@ -14,6 +14,24 @@
       <span v-if="hasData" class="result-stats">
         共 {{ filteredTotal }} 只股票
       </span>
+      <el-button
+        v-if="hasData && selectedStockCode"
+        type="success"
+        size="small"
+        :loading="fillingCurrentKline"
+        @click="handleFillCurrentStockKline"
+      >
+        补齐当前股票K线
+      </el-button>
+      <el-button
+        v-if="hasData"
+        type="primary"
+        size="small"
+        :loading="fillingKlines"
+        @click="handleFillKlines"
+      >
+        批量补齐K线数据
+      </el-button>
     </template>
 
     <div class="split-container" ref="splitContainerRef">
@@ -232,9 +250,11 @@
 
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
+import { fillWatchlistKlines } from '@/api/stock'
 import type { WatchlistQueryItem, WatchlistDetailItem, WatchlistKlineItem } from '@/types/watchlistQuery'
 
 const props = defineProps<{
@@ -255,6 +275,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:filterStockCode': [value: string]
   'update:selectedStockCode': [value: string]
+  'refresh': []
 }>()
 
 function handleRowClick(row: WatchlistQueryItem) {
@@ -366,6 +387,115 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
   const date = extractDate(row.created_at)
   const colorIndex = middleDateColorMap.value.get(date) ?? 0
   return dateColors[colorIndex % dateColors.length] ?? 'date-color-0'
+}
+
+// 补齐K线数据相关
+const fillingKlines = ref(false)
+const fillingCurrentKline = ref(false)
+
+// 处理补齐当前股票的K线数据
+async function handleFillCurrentStockKline() {
+  if (!props.selectedStockCode) {
+    ElMessage.warning('请先选择一只股票')
+    return
+  }
+
+  try {
+    const result = await ElMessageBox.confirm(
+      `确定要补齐股票 ${props.selectedStockCode} 的K线数据吗？`,
+      '补齐当前股票K线',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    )
+    if (result !== 'confirm') {
+      return
+    }
+  } catch {
+    // 用户取消
+    return
+  }
+
+  fillingCurrentKline.value = true
+  try {
+    const res = await fillWatchlistKlines({
+      stock_codes: [props.selectedStockCode],
+    })
+    const { total_stocks, success_count, failed_count, skipped_count, stock_details } = res
+
+    let message = `补齐完成！\n`
+    message += `股票代码: ${props.selectedStockCode}\n`
+    if (stock_details.length > 0) {
+      const detail = stock_details[0]
+      if (detail) {
+        message += `导入条数: ${detail.imported_count}\n`
+        if (detail.error) {
+          message += `提示: ${detail.error}`
+        }
+      }
+    }
+
+    if (failed_count > 0) {
+      ElMessage.warning(message)
+    } else {
+      ElMessage.success(message)
+    }
+
+    // 补齐完成后自动刷新
+    emit('refresh')
+  } catch (err: any) {
+    ElMessage.error(`补齐K线数据失败: ${err?.message || '未知错误'}`)
+  } finally {
+    fillingCurrentKline.value = false
+  }
+}
+
+// 处理批量补齐K线数据
+async function handleFillKlines() {
+  try {
+    const result = await ElMessageBox.confirm(
+      '确定要补齐所有观察表中股票的K线数据吗？此操作可能需要较长时间。',
+      '批量补齐K线数据',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'info',
+      }
+    )
+    if (result !== 'confirm') {
+      return
+    }
+  } catch {
+    // 用户取消
+    return
+  }
+
+  fillingKlines.value = true
+  try {
+    const res = await fillWatchlistKlines({})
+    const { total_stocks, success_count, failed_count, skipped_count } = res
+
+    let message = `补齐完成！\n`
+    message += `总股票数: ${total_stocks}\n`
+    message += `成功: ${success_count}\n`
+    message += `失败: ${failed_count}\n`
+    message += `跳过: ${skipped_count}`
+
+    if (failed_count > 0) {
+      ElMessage.warning(message)
+    } else {
+      ElMessage.success(message)
+    }
+
+    // 补齐完成后自动刷新
+    emit('refresh')
+  } catch (err: any) {
+    ElMessage.error(`补齐K线数据失败: ${err?.message || '未知错误'}`)
+  } finally {
+    fillingKlines.value = false
+  }
 }
 
 // 拖动调整宽度相关
