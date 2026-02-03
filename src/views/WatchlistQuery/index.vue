@@ -22,6 +22,7 @@
       :has-data="!!responseData"
       :kline-start-date="klineStartDate"
       :kline-end-date="klineEndDate"
+      @refresh="handleRefresh"
     />
   </div>
 </template>
@@ -251,6 +252,14 @@ async function loadKlineData(stockCode: string) {
     klineEndDate.value = null
   } finally {
     isLoadingKline.value = false
+  }
+}
+
+// 刷新处理（补齐K线数据后调用）
+async function handleRefresh() {
+  // 如果当前有选中的股票，刷新该股票的K线数据
+  if (selectedStockCode.value) {
+    await loadKlineData(selectedStockCode.value)
   }
 }
 

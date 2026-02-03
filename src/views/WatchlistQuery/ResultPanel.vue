@@ -266,6 +266,7 @@ const props = defineProps<{
 const emit = defineEmits<{
   'update:filterStockCode': [value: string]
   'update:selectedStockCode': [value: string]
+  'refresh': []
 }>()
 
 function handleRowClick(row: WatchlistQueryItem) {
@@ -418,6 +419,9 @@ async function handleFillKlines() {
     } else {
       ElMessage.success(message)
     }
+    
+    // 补齐完成后自动刷新
+    emit('refresh')
   } catch (err: any) {
     ElMessage.error(`补齐K线数据失败: ${err?.message || '未知错误'}`)
   } finally {
