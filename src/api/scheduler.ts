@@ -26,6 +26,10 @@ export const triggerStockPlateSync = async () => {
   return res
 }
 
+// 手动触发观察表K线导入任务
+export const triggerWatchlistKlineImport = () =>
+  request.post('/scheduler/trigger-watchlist-kline-import')
+
 // 获取任务列表
 export const getJobList = () =>
   request.get('/scheduler/jobs')
