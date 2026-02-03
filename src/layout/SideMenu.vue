@@ -114,7 +114,8 @@ const menuConfig: MenuItem[] = [
       { index: '/trade-date-query', title: '交易日查询', icon: 'calendar' },
       { index: '/price-compare', title: '价格对比', icon: 'dataAnalysis' },
       { index: '/track-data', title: '追踪数据', icon: 'aim' },
-      { index: '/dynamic-backtrack', title: '动态回溯', icon: 'dataAnalysis' }
+      { index: '/dynamic-backtrack', title: '动态回溯', icon: 'dataAnalysis' },
+      { index: '/watchlist-query', title: '观察表查询', icon: 'aim' }
     ]
   },
   // 定时任务

@@ -6,6 +6,7 @@ import TradeDateQuery from '@/views/TradeDateQuery/index.vue'
 import PriceCompare from '@/views/PriceCompare/index.vue'
 import TrackData from '@/views/TrackData/index.vue'
 import DynamicBacktrack from '@/views/DynamicBacktrack/index.vue'
+import WatchlistQuery from '@/views/WatchlistQuery/index.vue'
 import SchedulerManage from '@/views/SchedulerManage/index.vue'
 
 const router = createRouter({
@@ -52,6 +53,12 @@ const router = createRouter({
       name: 'DynamicBacktrack',
       component: DynamicBacktrack,
       meta: { title: '动态回溯' },
+    },
+    {
+      path: '/watchlist-query',
+      name: 'WatchlistQuery',
+      component: WatchlistQuery,
+      meta: { title: '观察表查询' },
     },
     {
       path: '/scheduler-manage',

@@ -26,6 +26,14 @@ import type {
   BatchCheckWatchlistRequest,
   BatchCheckWatchlistResponse,
 } from '@/types/stockWatchlist'
+import type {
+  WatchlistQueryRequest,
+  WatchlistQueryResponse,
+  WatchlistDetailRequest,
+  WatchlistDetailResponse,
+  WatchlistKlineRequest,
+  WatchlistKlineResponse,
+} from '@/types/watchlistQuery'
 
 /**
  * 查询单只股票信息
@@ -110,4 +118,19 @@ export async function batchCheckWatchlist(params: BatchCheckWatchlistRequest) {
 // 获取所有观察的股票（后端路径：/stock-watchlist）
 export async function listWatchlist() {
   return http.get<WatchlistResponse[]>('/stock-watchlist')
+}
+
+// 观察表查询（后端路径：/stock-watchlist-query）
+export async function fetchWatchlistQuery(params: WatchlistQueryRequest) {
+  return http.post<WatchlistQueryResponse>('/stock-watchlist-query', params)
+}
+
+// 观察表明细查询（后端路径：/stock-watchlist-query/detail）
+export async function fetchWatchlistDetail(params: WatchlistDetailRequest) {
+  return http.post<WatchlistDetailResponse>('/stock-watchlist-query/detail', params)
+}
+
+// 观察表K线查询（后端路径：/stock-watchlist-query/kline）
+export async function fetchWatchlistKline(params: WatchlistKlineRequest) {
+  return http.post<WatchlistKlineResponse>('/stock-watchlist-query/kline', params)
 }
