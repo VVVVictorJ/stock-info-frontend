@@ -16,9 +16,9 @@
       </span>
     </template>
 
-    <div class="split-container">
+    <div class="split-container" ref="splitContainerRef">
       <!-- 左侧：股票列表 -->
-      <div class="left-panel">
+      <div class="left-panel" :style="{ width: leftPanelWidth + 'px' }">
         <div class="panel-title">股票列表</div>
         <div class="left-table-container">
           <el-table
@@ -76,11 +76,14 @@
         </div>
       </div>
 
-      <!-- 分隔线 -->
-      <div class="divider"></div>
+      <!-- 分隔线1：左侧和中间之间 -->
+      <div
+        class="divider resizable"
+        @mousedown="handleLeftDividerMouseDown"
+      ></div>
 
       <!-- 中间：时间序列明细 -->
-      <div class="middle-panel">
+      <div class="middle-panel" :style="{ width: middlePanelWidth + 'px' }">
         <div class="panel-title">
           <span v-if="selectedStockCode">
             {{ selectedStockCode }} 时间序列明细
@@ -154,11 +157,14 @@
         </div>
       </div>
 
-      <!-- 分隔线 -->
-      <div class="divider"></div>
+      <!-- 分隔线2：中间和右侧之间 -->
+      <div
+        class="divider resizable"
+        @mousedown="handleMiddleDividerMouseDown"
+      ></div>
 
       <!-- 右侧：K线数据 -->
-      <div class="right-panel">
+      <div class="right-panel" :style="{ flex: '1 1 auto' }">
         <div class="panel-title">
           <span v-if="selectedStockCode">
             {{ selectedStockCode }} K线数据
@@ -225,7 +231,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, onMounted, onUnmounted } from 'vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
@@ -360,6 +366,121 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
   const colorIndex = middleDateColorMap.value.get(date) ?? 0
   return dateColors[colorIndex % dateColors.length] ?? 'date-color-0'
 }
+
+// 拖动调整宽度相关
+const splitContainerRef = ref<HTMLElement | null>(null)
+const leftPanelWidth = ref(300) // 默认宽度 30%
+const middlePanelWidth = ref(350) // 默认宽度 35%
+const isResizing = ref(false)
+const resizeType = ref<'left' | 'middle' | null>(null)
+const startX = ref(0)
+const startLeftWidth = ref(0)
+const startMiddleWidth = ref(0)
+
+// 初始化面板宽度
+function initPanelWidths() {
+  if (splitContainerRef.value) {
+    const containerWidth = splitContainerRef.value.clientWidth
+    // 减去两个分隔线的宽度（每个8px）
+    const availableWidth = containerWidth - 16
+    leftPanelWidth.value = Math.floor(availableWidth * 0.3)
+    middlePanelWidth.value = Math.floor(availableWidth * 0.35)
+  }
+}
+
+onMounted(() => {
+  initPanelWidths()
+  // 监听窗口大小变化
+  window.addEventListener('resize', initPanelWidths)
+})
+
+// 处理左侧分隔线鼠标按下
+function handleLeftDividerMouseDown(e: MouseEvent) {
+  startResize(e, 'left')
+}
+
+// 处理中间分隔线鼠标按下
+function handleMiddleDividerMouseDown(e: MouseEvent) {
+  startResize(e, 'middle')
+}
+
+// 开始拖动
+function startResize(e: MouseEvent, type: 'left' | 'middle') {
+  e.preventDefault()
+  e.stopPropagation()
+  isResizing.value = true
+  resizeType.value = type
+  startX.value = e.clientX
+  startLeftWidth.value = leftPanelWidth.value
+  startMiddleWidth.value = middlePanelWidth.value
+
+  document.addEventListener('mousemove', handleResize)
+  document.addEventListener('mouseup', stopResize)
+  document.body.style.cursor = 'col-resize'
+  document.body.style.userSelect = 'none'
+}
+
+// 拖动中
+function handleResize(e: MouseEvent) {
+  if (!isResizing.value || !resizeType.value || !splitContainerRef.value) {
+    return
+  }
+
+  const containerWidth = splitContainerRef.value.clientWidth
+  const deltaX = e.clientX - startX.value
+  const minPanelWidth = 200
+  const dividerWidth = 8
+  const gap = 0
+
+  if (resizeType.value === 'left') {
+    // 调整左侧面板宽度（移除最大宽度限制，只保留最小宽度限制）
+    const newLeftWidth = Math.max(minPanelWidth, startLeftWidth.value + deltaX)
+    // 计算剩余可用宽度（减去左侧面板、两个分隔线）
+    const remainingWidth = containerWidth - newLeftWidth - dividerWidth * 2
+    // 右侧面板至少需要 minPanelWidth
+    const minRightWidth = minPanelWidth
+    // 中间面板至少需要 minPanelWidth
+    const minMiddleWidth = minPanelWidth
+    // 计算中间面板的最大允许宽度（剩余宽度减去右侧最小宽度）
+    const maxMiddleWidth = remainingWidth - minRightWidth
+    // 只要中间面板还有最小宽度空间，就可以继续拖动
+    if (maxMiddleWidth >= minMiddleWidth) {
+      leftPanelWidth.value = newLeftWidth
+      // 计算中间面板的新宽度：优先保持原宽度，但如果剩余空间不足，则压缩中间面板
+      if (startMiddleWidth.value > maxMiddleWidth) {
+        // 中间面板需要被压缩到最小值或更小
+        middlePanelWidth.value = Math.max(minMiddleWidth, maxMiddleWidth)
+      } else {
+        // 中间面板保持原宽度
+        middlePanelWidth.value = startMiddleWidth.value
+      }
+    }
+  } else if (resizeType.value === 'middle') {
+    // 调整中间面板宽度（移除最大宽度限制，只保留最小宽度限制）
+    const newMiddleWidth = Math.max(minPanelWidth, startMiddleWidth.value + deltaX)
+    // 计算右侧面板可用宽度（减去左侧、中间、两个分隔线）
+    const rightPanelWidth = containerWidth - leftPanelWidth.value - newMiddleWidth - dividerWidth * 2
+    if (rightPanelWidth >= minPanelWidth) {
+      middlePanelWidth.value = newMiddleWidth
+    }
+  }
+}
+
+// 停止拖动
+function stopResize() {
+  isResizing.value = false
+  resizeType.value = null
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  document.body.style.cursor = ''
+  document.body.style.userSelect = ''
+}
+
+onUnmounted(() => {
+  document.removeEventListener('mousemove', handleResize)
+  document.removeEventListener('mouseup', stopResize)
+  window.removeEventListener('resize', initPanelWidths)
+})
 </script>
 
 <style scoped>
@@ -388,13 +509,14 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 12px;
+  gap: 0;
   overflow: hidden;
 }
 
 /* 左侧面板 */
 .left-panel {
-  flex: 0 0 30%;
+  flex: 0 0 auto;
+  min-width: 200px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -405,7 +527,8 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
 
 /* 中间面板 */
 .middle-panel {
-  flex: 0 0 35%;
+  flex: 0 0 auto;
+  min-width: 200px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -416,7 +539,8 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
 
 /* 右侧面板 */
 .right-panel {
-  flex: 1;
+  flex: 1 1 auto;
+  min-width: 200px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -451,6 +575,35 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
   width: 1px;
   background: linear-gradient(to bottom, #e4e7ed 0%, #909399 50%, #e4e7ed 100%);
   flex-shrink: 0;
+  position: relative;
+}
+
+/* 可拖动的分隔线 */
+.divider.resizable {
+  width: 8px;
+  background: linear-gradient(to bottom, #e4e7ed 0%, #909399 50%, #e4e7ed 100%);
+  cursor: col-resize;
+  position: relative;
+  user-select: none;
+  transition: background 0.2s;
+  z-index: 10;
+  flex-shrink: 0;
+  margin: 0 -2px;
+}
+
+.divider.resizable:hover {
+  background: linear-gradient(to bottom, #409eff 0%, #66b1ff 50%, #409eff 100%);
+}
+
+.divider.resizable::before {
+  content: '';
+  position: absolute;
+  left: -4px;
+  right: -4px;
+  top: 0;
+  bottom: 0;
+  cursor: col-resize;
+  z-index: 11;
 }
 
 /* 表格容器 */
