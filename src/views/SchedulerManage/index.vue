@@ -7,9 +7,14 @@
       :job-status="jobStatus"
       :job-latest-run="jobLatestRun"
       :job-today-count="jobTodayCount"
+      :current-page="jobsQuery.page"
+      :page-size="jobsQuery.pageSize"
       @refresh="refreshJobs"
       @trigger="handleTrigger"
       @select="handleJobSelect"
+      @update:current-page="jobsQuery.page = $event"
+      @update:page-size="handleJobsPageSizeChange"
+      @page-change="handleJobsPageChange"
     />
 
     <HistoryPanel
@@ -44,6 +49,7 @@ import {
   triggerStockFilter,
   triggerStockTableSync,
   triggerStockPlateSync,
+  triggerWatchlistKlineImport,
   getExecutionHistory,
   getLatestExecution
 } from '@/api/scheduler'
@@ -71,6 +77,12 @@ const jobStatus = reactive<Record<string, string>>({})
 const jobLatestRun = reactive<Record<string, { startedAt: string; completedAt?: string; status: string } | null>>({})
 // 今日执行次数
 const jobTodayCount = reactive<Record<string, number>>({})
+
+// 任务列表分页
+const jobsQuery = reactive({
+  page: 1,
+  pageSize: 5
+})
 
 // 执行历史
 const historyLoading = ref(false)
@@ -156,6 +168,17 @@ function handleJobSelect(job: JobInfo | null) {
   loadHistory()
 }
 
+// 任务列表分页大小变化
+function handleJobsPageSizeChange(size: number) {
+  jobsQuery.pageSize = size
+  jobsQuery.page = 1
+}
+
+// 任务列表分页变化
+function handleJobsPageChange() {
+  // 可以在这里添加额外的逻辑，比如滚动到顶部
+}
+
 // 手动触发任务
 async function handleTrigger(jobName: string) {
   if (triggering[jobName]) {
@@ -183,6 +206,9 @@ async function handleTrigger(jobName: string) {
     } else if (jobName === 'stock_plate_sync') {
       branch = 'stock_plate_sync'
       res = await triggerStockPlateSync()
+    } else if (jobName === 'watchlist_kline_import') {
+      branch = 'watchlist_kline_import'
+      res = await triggerWatchlistKlineImport()
     } else {
       branch = 'unknown'
       ElMessage.error(`未知任务: ${jobName}`)

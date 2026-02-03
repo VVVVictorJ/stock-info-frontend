@@ -8,13 +8,18 @@
     </template>
 
     <el-table
-      :data="jobs"
+      :data="paginatedJobs"
       highlight-current-row
       @current-change="handleJobSelect"
       style="width: 100%"
       ref="jobTableRef"
     >
-      <el-table-column prop="displayName" label="任务名称" width="160" />
+      <el-table-column prop="displayName" label="任务名称" width="160">
+        <template #default="{ row }">
+          <span :class="{ 'disabled-job': !row.enabled }">{{ row.displayName }}</span>
+          <el-tag v-if="!row.enabled" type="info" size="small" style="margin-left: 8px">已停用</el-tag>
+        </template>
+      </el-table-column>
       <el-table-column prop="description" label="任务描述" min-width="200" show-overflow-tooltip />
       <el-table-column prop="schedule" label="执行时间" width="200" />
       <el-table-column label="执行状态" width="100">
@@ -44,19 +49,31 @@
             size="small"
             @click.stop="$emit('trigger', row.name)"
             :loading="triggering[row.name]"
-            :disabled="isAnyJobRunning"
+            :disabled="isAnyJobRunning || !row.enabled"
           >
             手动执行
           </el-button>
         </template>
       </el-table-column>
     </el-table>
+
+    <PaginationWrapper
+      :current-page="currentPage"
+      :page-size="pageSize"
+      :total="total"
+      :page-sizes="[5, 10, 20, 50]"
+      layout="total, sizes, prev, pager, next"
+      @update:current-page="$emit('update:currentPage', $event)"
+      @update:page-size="$emit('update:pageSize', $event)"
+      @change="$emit('page-change')"
+    />
   </el-card>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, computed } from 'vue'
 import { Refresh } from '@element-plus/icons-vue'
+import PaginationWrapper from '@/component/common/PaginationWrapper.vue'
 import type { JobInfo } from '@/types/scheduler'
 
 const props = defineProps<{
@@ -66,15 +83,30 @@ const props = defineProps<{
   jobStatus: Record<string, string>
   jobLatestRun: Record<string, { startedAt: string; completedAt?: string; status: string } | null>
   jobTodayCount: Record<string, number>
+  currentPage: number
+  pageSize: number
 }>()
 
 const emit = defineEmits<{
   'refresh': []
   'trigger': [jobName: string]
   'select': [job: JobInfo | null]
+  'update:currentPage': [page: number]
+  'update:pageSize': [size: number]
+  'page-change': []
 }>()
 
 const jobTableRef = ref()
+
+// 计算总数
+const total = computed(() => props.jobs.length)
+
+// 计算分页后的任务列表
+const paginatedJobs = computed(() => {
+  const start = (props.currentPage - 1) * props.pageSize
+  const end = start + props.pageSize
+  return props.jobs.slice(start, end)
+})
 
 function handleJobSelect(job: JobInfo | null) {
   emit('select', job)
@@ -137,6 +169,19 @@ function getTodayRunCount(jobName: string): number {
 <style scoped>
 .jobs-panel {
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.jobs-panel :deep(.el-card__body) {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.jobs-panel :deep(.el-table) {
+  flex: 1;
 }
 
 .panel-header {
@@ -156,5 +201,10 @@ function getTodayRunCount(jobName: string): number {
 
 .jobs-panel :deep(.el-table__row.current-row) {
   background-color: #ecf5ff;
+}
+
+.disabled-job {
+  color: #909399;
+  text-decoration: line-through;
 }
 </style>
