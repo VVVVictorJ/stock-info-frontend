@@ -184,13 +184,36 @@
       <!-- 右侧：K线数据 -->
       <div class="right-panel" :style="{ flex: '1 1 auto' }">
         <div class="panel-title">
-          <span v-if="selectedStockCode">
-            {{ selectedStockCode }} K线数据
-          </span>
-          <span v-else>请选择股票</span>
-          <span v-if="selectedStockCode && klineDateRange" class="date-range">
-            {{ klineDateRange }}
-          </span>
+          <div class="panel-title-left">
+            <span v-if="selectedStockCode">
+              {{ selectedStockCode }} K线数据
+            </span>
+            <span v-else>请选择股票</span>
+            <span v-if="selectedStockCode && klineDateRange" class="date-range">
+              {{ klineDateRange }}
+            </span>
+          </div>
+          <div v-if="selectedStockCode" class="panel-title-right">
+            <div v-if="customRangeEnabled && customRangeStatus" class="custom-range-status">
+              {{ customRangeStatus }}
+            </div>
+            <el-button
+              v-if="customRangeEnabled && (startRowIndex !== null || endRowIndex !== null)"
+              type="info"
+              size="small"
+              @click="handleClearSelection"
+              plain
+            >
+              清除选择
+            </el-button>
+            <el-switch
+              v-model="customRangeEnabled"
+              @change="handleCustomRangeToggle"
+              active-text="自定义范围"
+              inactive-text=""
+              size="small"
+            />
+          </div>
         </div>
         <div class="right-table-container">
           <el-table
@@ -199,6 +222,11 @@
             style="width: 100%"
             height="100%"
             v-loading="loadingKline"
+            @row-click="(row: WatchlistKlineItem) => {
+              const index = props.rightTableData.findIndex(item => item === row)
+              if (index !== -1) handleKlineRowClick(row, index)
+            }"
+            :row-class-name="getKlineRowClassName"
           >
             <el-table-column prop="trade_date" label="交易日期" min-width="110" sortable />
             <el-table-column label="成交量变化比例" min-width="130" sortable align="right">
@@ -249,7 +277,7 @@
 </template>
 
 <script setup lang="ts">
-import { computed, ref, onMounted, onUnmounted } from 'vue'
+import { computed, ref, watch, onMounted, onUnmounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
@@ -306,9 +334,21 @@ const klineDateRange = computed(() => {
   return `${props.klineStartDate} ~ ${props.klineEndDate}`
 })
 
-// 获取基准成交量（最早的数据，第一条记录）
+// 获取基准成交量
+// 当 customRangeEnabled 为 false 时，使用第一条记录作为基准（原有逻辑）
+// 当 customRangeEnabled 为 true 且 startRowIndex 存在时，使用起始行的成交量作为基准
 const baseVolume = computed(() => {
   if (!props.rightTableData || props.rightTableData.length === 0) return null
+
+  // 如果启用了自定义范围功能且有起始行索引，使用起始行作为基准
+  if (customRangeEnabled.value && startRowIndex.value !== null) {
+    const startItem = props.rightTableData[startRowIndex.value]
+    if (!startItem) return null
+    const volume = typeof startItem.volume === 'string' ? parseFloat(startItem.volume) : startItem.volume
+    return isNaN(volume) ? null : volume
+  }
+
+  // 否则使用第一条记录作为基准（原有逻辑）
   const firstItem = props.rightTableData[0]
   if (!firstItem) return null
   const volume = typeof firstItem.volume === 'string' ? parseFloat(firstItem.volume) : firstItem.volume
@@ -317,8 +357,36 @@ const baseVolume = computed(() => {
 
 // 计算成交量变化比例
 function getVolumeChangeRatio(row: WatchlistKlineItem, index: number): string {
-  // 第一条数据（基准）显示 "-"
-  if (index === 0) return '-'
+  // 如果启用了自定义范围功能
+  if (customRangeEnabled.value) {
+    // 如果起始行索引存在，起始行显示 "-"
+    if (startRowIndex.value !== null && index === startRowIndex.value) {
+      return '-'
+    }
+
+    // 如果起始行索引不存在，显示 "-"
+    if (startRowIndex.value === null) {
+      return '-'
+    }
+
+    // 如果终止行索引不存在，显示 "-"（只有在选择了起始行和终止行之后才显示变化比例）
+    if (endRowIndex.value === null) {
+      return '-'
+    }
+
+    // 如果当前行在起始行之前，显示 "-"
+    if (index < startRowIndex.value) {
+      return '-'
+    }
+
+    // 如果当前行在终止行之后，显示 "-"（只计算起始行到终止行（包括终止行）的变化比例）
+    if (index > endRowIndex.value) {
+      return '-'
+    }
+  } else {
+    // 原有逻辑：第一条数据（基准）显示 "-"
+    if (index === 0) return '-'
+  }
 
   // 如果没有基准成交量，显示 "-"
   if (baseVolume.value === null || baseVolume.value === 0) return '-'
@@ -334,8 +402,26 @@ function getVolumeChangeRatio(row: WatchlistKlineItem, index: number): string {
 
 // 获取成交量变化比例的样式类
 function getVolumeChangeClass(row: WatchlistKlineItem, index: number): string {
-  // 第一条数据（基准）不显示颜色
-  if (index === 0) return ''
+  // 如果启用了自定义范围功能
+  if (customRangeEnabled.value) {
+    // 如果起始行索引存在，起始行不显示颜色
+    if (startRowIndex.value !== null && index === startRowIndex.value) return ''
+
+    // 如果起始行索引不存在，不显示颜色
+    if (startRowIndex.value === null) return ''
+
+    // 如果终止行索引不存在，不显示颜色（只有在选择了起始行和终止行之后才显示变化比例）
+    if (endRowIndex.value === null) return ''
+
+    // 如果当前行在起始行之前，不显示颜色
+    if (index < startRowIndex.value) return ''
+
+    // 如果当前行在终止行之后，不显示颜色（只计算起始行到终止行（包括终止行）的变化比例）
+    if (index > endRowIndex.value) return ''
+  } else {
+    // 原有逻辑：第一条数据（基准）不显示颜色
+    if (index === 0) return ''
+  }
 
   // 如果没有基准成交量，不显示颜色
   if (baseVolume.value === null || baseVolume.value === 0) return ''
@@ -389,9 +475,102 @@ function getMiddleRowClassName({ row }: { row: WatchlistDetailItem }): string {
   return dateColors[colorIndex % dateColors.length] ?? 'date-color-0'
 }
 
+// K线表格行样式（用于高亮起始行和终止行）
+function getKlineRowClassName({ row, rowIndex }: { row: WatchlistKlineItem; rowIndex: number }): string {
+  if (!customRangeEnabled.value) return ''
+
+  if (startRowIndex.value !== null && rowIndex === startRowIndex.value) {
+    return 'start-row'
+  }
+  if (endRowIndex.value !== null && rowIndex === endRowIndex.value) {
+    return 'end-row'
+  }
+  return ''
+}
+
+// 处理K线表格行点击事件
+function handleKlineRowClick(row: WatchlistKlineItem, rowIndex: number) {
+  // 如果功能未启用，不处理
+  if (!customRangeEnabled.value) return
+
+  // 如果点击的是起始行，清除起始行选择
+  if (startRowIndex.value === rowIndex) {
+    startRowIndex.value = null
+    return
+  }
+
+  // 如果点击的是终止行，清除终止行选择
+  if (endRowIndex.value === rowIndex) {
+    endRowIndex.value = null
+    return
+  }
+
+  // 如果起始行和终止行都已选择，重新开始选择起始行
+  if (startRowIndex.value !== null && endRowIndex.value !== null) {
+    startRowIndex.value = rowIndex
+    endRowIndex.value = null
+    return
+  }
+
+  // 如果起始行未选择，设置为起始行
+  if (startRowIndex.value === null) {
+    startRowIndex.value = rowIndex
+    return
+  }
+
+  // 如果起始行已选择但终止行未选择，设置为终止行
+  if (endRowIndex.value === null) {
+    endRowIndex.value = rowIndex
+    return
+  }
+}
+
+// 当开关关闭时，清除选择
+function handleCustomRangeToggle(value: boolean) {
+  customRangeEnabled.value = value
+  if (!value) {
+    startRowIndex.value = null
+    endRowIndex.value = null
+  }
+}
+
+// 清除选择
+function handleClearSelection() {
+  startRowIndex.value = null
+  endRowIndex.value = null
+}
+
+// 计算选择状态显示文本
+const customRangeStatus = computed(() => {
+  if (!customRangeEnabled.value) return ''
+
+  const parts: string[] = []
+
+  if (startRowIndex.value !== null && startRowIndex.value >= 0 && startRowIndex.value < props.rightTableData.length) {
+    const startRow = props.rightTableData[startRowIndex.value]
+    if (startRow) {
+      parts.push(`起始: ${startRow.trade_date}`)
+    }
+  }
+
+  if (endRowIndex.value !== null && endRowIndex.value >= 0 && endRowIndex.value < props.rightTableData.length) {
+    const endRow = props.rightTableData[endRowIndex.value]
+    if (endRow) {
+      parts.push(`终止: ${endRow.trade_date}`)
+    }
+  }
+
+  return parts.length > 0 ? parts.join(' | ') : '请点击表格行选择起始行和终止行'
+})
+
 // 补齐K线数据相关
 const fillingKlines = ref(false)
 const fillingCurrentKline = ref(false)
+
+// 自定义范围功能相关
+const customRangeEnabled = ref(false)
+const startRowIndex = ref<number | null>(null)
+const endRowIndex = ref<number | null>(null)
 
 // 处理补齐当前股票的K线数据
 async function handleFillCurrentStockKline() {
@@ -518,6 +697,12 @@ function initPanelWidths() {
     middlePanelWidth.value = Math.floor(availableWidth * 0.35)
   }
 }
+
+// 监听股票代码变化，清除自定义范围选择
+watch(() => props.selectedStockCode, () => {
+  startRowIndex.value = null
+  endRowIndex.value = null
+})
 
 onMounted(() => {
   initPanelWidths()
@@ -695,10 +880,32 @@ onUnmounted(() => {
   gap: 12px;
 }
 
+.panel-title-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.panel-title-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
 .date-range {
   font-size: 12px;
   font-weight: normal;
   color: var(--el-text-color-secondary);
+}
+
+.custom-range-status {
+  font-size: 12px;
+  font-weight: normal;
+  color: var(--el-text-color-primary);
+  white-space: nowrap;
 }
 
 /* 分隔线 */
@@ -892,6 +1099,28 @@ onUnmounted(() => {
 .middle-table-container :deep(.date-color-7):hover > td { background-color: #e8e8e8 !important; }
 
 .middle-table-container :deep([class^="date-color-"] > td) {
+  background-color: inherit !important;
+}
+
+/* K线表格选中行样式 */
+.right-table-container :deep(.start-row) {
+  background-color: #e1f3ff !important;
+}
+
+.right-table-container :deep(.start-row):hover > td {
+  background-color: #cce7ff !important;
+}
+
+.right-table-container :deep(.end-row) {
+  background-color: #fff4e6 !important;
+}
+
+.right-table-container :deep(.end-row):hover > td {
+  background-color: #ffe8cc !important;
+}
+
+.right-table-container :deep(.start-row > td),
+.right-table-container :deep(.end-row > td) {
   background-color: inherit !important;
 }
 </style>
