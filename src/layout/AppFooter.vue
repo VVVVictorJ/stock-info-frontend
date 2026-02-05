@@ -12,8 +12,10 @@ const appVersion = __APP_VERSION__
 
 <style scoped>
 .layout-footer {
-  border-top: 1px solid var(--el-border-color);
-  background: #fff;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
   padding: 10px 16px;
   flex-shrink: 0;
 }
@@ -22,6 +24,6 @@ const appVersion = __APP_VERSION__
   align-items: center;
   justify-content: center;
   font-size: 12px;
-  color: #909399;
+  color: #606266;
 }
 </style>

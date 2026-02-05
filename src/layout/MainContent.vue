@@ -13,7 +13,9 @@ import AppFooter from './AppFooter.vue'
 
 <style scoped>
 .layout-main {
-  background-color: var(--el-fill-color-blank);
+  background: rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   padding: 0;
   overflow: hidden;
   height: 100%;

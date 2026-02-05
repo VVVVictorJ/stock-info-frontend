@@ -202,9 +202,12 @@ const handleMenuClose = (index: string) => {
 <style scoped>
 .layout-aside {
   padding: 0;
-  border-right: 1px solid var(--el-border-color);
+  border-right: 1px solid rgba(255, 255, 255, 0.15);
   overflow: hidden;
   transition: width 0.3s ease;
+  background: rgba(255, 255, 255, 0.35);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
 }
 .aside-container {
   height: 100%;
@@ -217,6 +220,7 @@ const handleMenuClose = (index: string) => {
   border-right: none;
   overflow-y: auto;
   overflow-x: hidden;
+  background: transparent !important;
 }
 .menu-vertical .el-menu-item {
   min-width: 0;
@@ -226,7 +230,7 @@ const handleMenuClose = (index: string) => {
 }
 .collapse-btn-container {
   padding: 12px;
-  border-top: 1px solid var(--el-border-color);
+  border-top: 1px solid rgba(255, 255, 255, 0.3);
   display: flex;
   justify-content: center;
   align-items: center;
