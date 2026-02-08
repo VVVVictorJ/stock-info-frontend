@@ -26,6 +26,7 @@ export interface AiAnalysisResult {
   overview: AnalysisOverview
   signal_evaluations: SignalEvaluation[]
   current_diagnosis: CurrentDiagnosis
+  optimal_trade_signals?: OptimalTradeSignal[]
   risk_warnings: string[]
 }
 
@@ -79,6 +80,24 @@ export interface CurrentDiagnosis {
   ma20: number
   has_new_signal: boolean
   action_suggestion: string
+}
+
+// 最佳买卖信号中的买入/卖出点
+export interface TradePoint {
+  date: string
+  close_price: number
+  reasons: string[]
+  matched_conditions: number
+  trend_phase: string
+}
+
+// 最佳买卖信号配对
+export interface OptimalTradeSignal {
+  pair_index: number
+  buy: TradePoint
+  sell: TradePoint
+  theoretical_return_pct: number
+  holding_days: number
 }
 
 // ==================== 历史记录相关 ====================

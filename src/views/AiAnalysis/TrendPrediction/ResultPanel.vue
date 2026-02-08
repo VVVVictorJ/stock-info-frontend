@@ -153,6 +153,70 @@
         </div>
       </div>
 
+      <!-- 最佳买卖信号 -->
+      <div v-if="analysisData.optimal_trade_signals && analysisData.optimal_trade_signals.length > 0" class="section trade-signal-section">
+        <div class="section-title">最佳买卖信号</div>
+        <div class="trade-signal-list">
+          <div v-for="pair in analysisData.optimal_trade_signals" :key="pair.pair_index" class="trade-signal-pair">
+            <div class="pair-header">
+              <span class="pair-index">第 {{ pair.pair_index }} 组</span>
+              <el-tag
+                :type="pair.theoretical_return_pct >= 0 ? 'success' : 'danger'"
+                size="default"
+                effect="dark"
+                class="return-tag"
+              >
+                收益率 {{ pair.theoretical_return_pct >= 0 ? '+' : '' }}{{ pair.theoretical_return_pct.toFixed(2) }}%
+              </el-tag>
+              <span class="holding-days">持有 {{ pair.holding_days }} 天</span>
+            </div>
+            <div class="pair-body">
+              <!-- 买入信号 -->
+              <div class="trade-point buy-point">
+                <div class="point-header">
+                  <el-tag type="danger" size="small" effect="plain">买入</el-tag>
+                  <span class="point-date">{{ pair.buy.date }}</span>
+                  <span class="point-price text-red">{{ pair.buy.close_price.toFixed(2) }}</span>
+                  <span class="point-phase">{{ pair.buy.trend_phase }}</span>
+                  <span class="point-conditions">匹配 {{ pair.buy.matched_conditions }} 项</span>
+                </div>
+                <div class="point-reasons">
+                  <el-tag v-for="(reason, idx) in pair.buy.reasons" :key="idx" size="small" class="reason-tag">
+                    {{ reason }}
+                  </el-tag>
+                </div>
+              </div>
+              <!-- 箭头 -->
+              <div class="arrow-divider">
+                <el-icon :size="20"><Right /></el-icon>
+              </div>
+              <!-- 卖出信号 -->
+              <div class="trade-point sell-point">
+                <div class="point-header">
+                  <el-tag type="success" size="small" effect="plain">卖出</el-tag>
+                  <span class="point-date">{{ pair.sell.date }}</span>
+                  <span class="point-price text-green">{{ pair.sell.close_price.toFixed(2) }}</span>
+                  <span class="point-phase">{{ pair.sell.trend_phase }}</span>
+                  <span class="point-conditions">匹配 {{ pair.sell.matched_conditions }} 项</span>
+                </div>
+                <div class="point-reasons">
+                  <el-tag v-for="(reason, idx) in pair.sell.reasons" :key="idx" size="small" class="reason-tag">
+                    {{ reason }}
+                  </el-tag>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div v-else class="section trade-signal-section">
+        <div class="section-title">最佳买卖信号</div>
+        <el-empty
+          :description="analysisData.optimal_trade_signals ? 'K线周期内未识别到明确的买卖信号' : '该记录不包含买卖信号数据，请重新分析以获取'"
+          :image-size="60"
+        />
+      </div>
+
       <!-- 风险提示 -->
       <div class="section risk-section">
         <div class="section-title">风险提示</div>
@@ -180,6 +244,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue'
+import { Right } from '@element-plus/icons-vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import type { TrendPredictionResponse, AiAnalysisResult } from '@/types/aiAnalysis'
 
@@ -336,6 +401,118 @@ function getRatingType(rating: string): '' | 'success' | 'warning' | 'danger' | 
 
 .action-value {
   color: #e6a23c;
+}
+
+/* 最佳买卖信号 */
+.trade-signal-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.trade-signal-pair {
+  border: 1px solid #e4e7ed;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.pair-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #f5f7fa;
+  border-bottom: 1px solid #e4e7ed;
+}
+
+.pair-index {
+  font-weight: 700;
+  font-size: 14px;
+  color: #303133;
+}
+
+.return-tag {
+  font-weight: 700;
+  font-size: 13px;
+}
+
+.holding-days {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.pair-body {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+}
+
+.trade-point {
+  flex: 1;
+  padding: 12px 16px;
+}
+
+.buy-point {
+  background: #fef0f0;
+}
+
+.sell-point {
+  background: #f0f9eb;
+}
+
+.arrow-divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  color: var(--el-text-color-secondary);
+  background: #f5f7fa;
+}
+
+.point-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 8px;
+}
+
+.point-date {
+  font-weight: 600;
+  font-size: 14px;
+  color: #303133;
+}
+
+.point-price {
+  font-weight: 700;
+  font-size: 15px;
+}
+
+.point-phase {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+}
+
+.point-conditions {
+  font-size: 12px;
+  color: var(--el-text-color-secondary);
+  background: #e9ecf1;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.point-reasons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.reason-tag {
+  max-width: 100%;
+  white-space: normal;
+  height: auto;
+  line-height: 1.4;
+  padding: 4px 8px;
 }
 
 /* 风险提示 */
