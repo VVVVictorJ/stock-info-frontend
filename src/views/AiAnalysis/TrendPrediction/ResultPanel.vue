@@ -8,7 +8,7 @@
       </span>
     </template>
 
-    <div v-if="loading" class="loading-container" v-loading="true" element-loading-text="AI 正在分析中，请耐心等待（约10-30秒）...">
+    <div v-if="loading" class="loading-container" v-loading="true" element-loading-text="AI 正在分析中，请耐心等待（约30-120秒）...">
     </div>
 
     <div v-else-if="!hasData" class="empty-container">

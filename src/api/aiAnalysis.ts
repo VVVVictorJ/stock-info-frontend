@@ -9,7 +9,7 @@ import type {
 
 // 发起趋势预测分析（后端路径：/ai-analysis/trend-prediction）
 export async function fetchTrendPrediction(params: TrendPredictionRequest) {
-  return http.post<TrendPredictionResponse>('/ai-analysis/trend-prediction', params, { timeout: 120000 })
+  return http.post<TrendPredictionResponse>('/ai-analysis/trend-prediction', params, { timeout: 180000 })
 }
 
 // 查询历史分析记录（后端路径：/ai-analysis/trend-prediction/history）
