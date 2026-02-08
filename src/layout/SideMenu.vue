@@ -60,7 +60,8 @@ import {
   DataAnalysis,
   Timer,
   Document,
-  Aim
+  Aim,
+  MagicStick,
 } from '@element-plus/icons-vue'
 
 // ==================== 图标映射配置 ====================
@@ -73,6 +74,7 @@ const iconMap: Record<string, Component> = {
   timer: Timer,
   document: Document,
   aim: Aim,
+  magicStick: MagicStick,
 }
 
 // ==================== 菜单项类型定义 ====================
@@ -116,6 +118,15 @@ const menuConfig: MenuItem[] = [
       { index: '/track-data', title: '追踪数据', icon: 'aim' },
       { index: '/dynamic-backtrack', title: '动态回溯', icon: 'dataAnalysis' },
       { index: '/watchlist-query', title: '观察表查询', icon: 'aim' }
+    ]
+  },
+  // AI分析
+  {
+    index: 'ai-analysis',
+    title: 'AI分析',
+    icon: 'magicStick',
+    children: [
+      { index: '/ai-analysis/trend-prediction', title: '趋势预测', icon: 'dataAnalysis' }
     ]
   },
   // 定时任务

@@ -8,6 +8,7 @@ import TrackData from '@/views/TrackData/index.vue'
 import DynamicBacktrack from '@/views/DynamicBacktrack/index.vue'
 import WatchlistQuery from '@/views/WatchlistQuery/index.vue'
 import SchedulerManage from '@/views/SchedulerManage/index.vue'
+import TrendPrediction from '@/views/AiAnalysis/TrendPrediction/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -65,6 +66,12 @@ const router = createRouter({
       name: 'SchedulerManage',
       component: SchedulerManage,
       meta: { title: '定时任务管理' },
+    },
+    {
+      path: '/ai-analysis/trend-prediction',
+      name: 'TrendPrediction',
+      component: TrendPrediction,
+      meta: { title: '趋势预测' },
     },
   ],
 })
