@@ -11,7 +11,7 @@
       @toggle-run="toggleRun"
       @refresh="loadData"
       @clear-filters="clearAllFilters"
-      @update:filters="filters = $event"
+      @update:filters="Object.assign(filters, $event)"
     />
     <ResultPanel
       :items="displayItems"

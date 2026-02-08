@@ -53,7 +53,7 @@ async function loadStockOptions() {
     }))
     // 默认选中第一个
     if (stockOptions.value.length > 0 && !selectedStockCode.value) {
-      selectedStockCode.value = stockOptions.value[0].stock_code
+      selectedStockCode.value = stockOptions.value[0]!.stock_code
     }
   } catch (err) {
     console.error('Failed to load watchlist:', err)
