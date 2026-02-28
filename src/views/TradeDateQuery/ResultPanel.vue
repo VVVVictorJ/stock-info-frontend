@@ -54,6 +54,15 @@
       >
         <el-icon><Refresh /></el-icon>
       </el-button>
+      <el-button
+        class="download-button"
+        size="small"
+        circle
+        title="下载当前结果"
+        @click="handleDownload"
+      >
+        <el-icon><Download /></el-icon>
+      </el-button>
       <span v-if="hasData" class="result-stats">
         共 {{ filteredTotal }} 只股票
       </span>
@@ -228,8 +237,10 @@ import { computed, ref } from 'vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
+import { exportToXlsx } from '@/utils/exportExcel'
 import type { TradeDateQueryItem } from '@/types/tradeDateQuery'
-import { Refresh, Setting, Plus, Minus } from '@element-plus/icons-vue'
+import { Refresh, Setting, Plus, Minus, Download } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
 
 const props = defineProps<{
   leftTableData: TradeDateQueryItem[]
@@ -299,6 +310,28 @@ function isWatched(stockCode: string): boolean {
 function handleToggleWatch(row: TradeDateQueryItem) {
   emit('toggle-watch', row.stock_code, row.stock_name)
 }
+
+function handleDownload() {
+  if (props.leftTableData.length === 0) {
+    ElMessage.warning('当前无可导出数据')
+    return
+  }
+
+  const now = new Date()
+  const yyyy = now.getFullYear()
+  const mm = String(now.getMonth() + 1).padStart(2, '0')
+  const dd = String(now.getDate()).padStart(2, '0')
+
+  exportToXlsx({
+    data: props.leftTableData,
+    columns: [
+      { key: 'stock_code', header: '股票代码' },
+      { key: 'stock_name', header: '股票名称' },
+    ],
+    sheetName: '股票列表',
+    fileName: `trade-date-query-${yyyy}-${mm}-${dd}.xlsx`,
+  })
+}
 </script>
 
 <style scoped>
@@ -327,6 +360,10 @@ function handleToggleWatch(row: TradeDateQueryItem) {
 }
 
 .refresh-plates-button {
+  margin-left: 4px;
+}
+
+.download-button {
   margin-left: 4px;
 }
 
