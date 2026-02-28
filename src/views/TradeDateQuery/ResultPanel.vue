@@ -319,10 +319,12 @@ function handleDownload() {
   }
 
   const now = new Date()
-  const yyyy = now.getFullYear()
-  const mm = String(now.getMonth() + 1).padStart(2, '0')
-  const dd = String(now.getDate()).padStart(2, '0')
-  const exportDate = props.queryDate || `${yyyy}-${mm}-${dd}`
+  const fallbackDate = [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, '0'),
+    String(now.getDate()).padStart(2, '0'),
+  ].join('-')
+  const exportDate = props.queryDate || fallbackDate
 
   // A-L 共 12 列；每只股票占 2 列（名称、代码），即每行 6 只股票
   const stockPerRow = 6
@@ -341,7 +343,7 @@ function handleDownload() {
   exportRowsToXlsx({
     rows,
     sheetName: '股票列表',
-    fileName: `trade-date-query-${yyyy}-${mm}-${dd}.xlsx`,
+    fileName: `trade-date-query-${exportDate}.xlsx`,
     mergeFirstRowToColumn: 12,
     centerFirstRow: true,
   })
