@@ -245,6 +245,7 @@ import { ElMessage } from 'element-plus'
 const props = defineProps<{
   leftTableData: TradeDateQueryItem[]
   rightTableData: TradeDateQueryItem[]
+  queryDate: string
   filterStockCode: string
   filterTrendStatus: string
   selectedStockCode: string
@@ -321,10 +322,11 @@ function handleDownload() {
   const yyyy = now.getFullYear()
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const dd = String(now.getDate()).padStart(2, '0')
+  const exportDate = props.queryDate || `${yyyy}-${mm}-${dd}`
 
   // A-L 共 12 列；每只股票占 2 列（名称、代码），即每行 6 只股票
   const stockPerRow = 6
-  const rows: Array<Array<string>> = []
+  const rows: Array<Array<string>> = [[exportDate]]
 
   for (let i = 0; i < props.leftTableData.length; i += stockPerRow) {
     const chunk = props.leftTableData.slice(i, i + stockPerRow)
@@ -340,6 +342,8 @@ function handleDownload() {
     rows,
     sheetName: '股票列表',
     fileName: `trade-date-query-${yyyy}-${mm}-${dd}.xlsx`,
+    mergeFirstRowToColumn: 12,
+    centerFirstRow: true,
   })
 }
 </script>

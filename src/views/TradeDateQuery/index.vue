@@ -16,6 +16,7 @@
     <ResultPanel
       :left-table-data="leftTableData"
       :right-table-data="rightTableData"
+      :query-date="queryDate"
       v-model:filter-stock-code="filterStockCode"
       v-model:filter-trend-status="filterTrendStatus"
       v-model:selected-stock-code="selectedStockCode"

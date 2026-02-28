@@ -38,10 +38,40 @@ interface ExportRowsOptions {
   rows: Array<Array<string | number | null | undefined>>
   fileName: string
   sheetName?: string
+  mergeFirstRowToColumn?: number
+  centerFirstRow?: boolean
 }
 
-export function exportRowsToXlsx({ rows, fileName, sheetName = 'Sheet1' }: ExportRowsOptions) {
+export function exportRowsToXlsx({
+  rows,
+  fileName,
+  sheetName = 'Sheet1',
+  mergeFirstRowToColumn,
+  centerFirstRow = false,
+}: ExportRowsOptions) {
   const worksheet = XLSX.utils.aoa_to_sheet(rows)
+
+  if (typeof mergeFirstRowToColumn === 'number' && mergeFirstRowToColumn >= 1) {
+    worksheet['!merges'] = [
+      {
+        s: { r: 0, c: 0 },
+        e: { r: 0, c: mergeFirstRowToColumn - 1 },
+      },
+    ]
+  }
+
+  if (centerFirstRow && worksheet.A1) {
+    worksheet.A1.s = {
+      alignment: {
+        horizontal: 'center',
+        vertical: 'center',
+      },
+      font: {
+        bold: true,
+      },
+    }
+  }
+
   const workbook = XLSX.utils.book_new()
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
   XLSX.writeFile(workbook, fileName)
