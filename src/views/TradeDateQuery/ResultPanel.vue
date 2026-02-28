@@ -237,7 +237,7 @@ import { computed, ref } from 'vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
-import { exportToXlsx } from '@/utils/exportExcel'
+import { exportRowsToXlsx } from '@/utils/exportExcel'
 import type { TradeDateQueryItem } from '@/types/tradeDateQuery'
 import { Refresh, Setting, Plus, Minus, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -322,12 +322,22 @@ function handleDownload() {
   const mm = String(now.getMonth() + 1).padStart(2, '0')
   const dd = String(now.getDate()).padStart(2, '0')
 
-  exportToXlsx({
-    data: props.leftTableData,
-    columns: [
-      { key: 'stock_code', header: '股票代码' },
-      { key: 'stock_name', header: '股票名称' },
-    ],
+  // A-L 共 12 列；每只股票占 2 列（名称、代码），即每行 6 只股票
+  const stockPerRow = 6
+  const rows: Array<Array<string>> = []
+
+  for (let i = 0; i < props.leftTableData.length; i += stockPerRow) {
+    const chunk = props.leftTableData.slice(i, i + stockPerRow)
+    const row: string[] = []
+    chunk.forEach(item => {
+      row.push(item.stock_name || '')
+      row.push(item.stock_code || '')
+    })
+    rows.push(row)
+  }
+
+  exportRowsToXlsx({
+    rows,
     sheetName: '股票列表',
     fileName: `trade-date-query-${yyyy}-${mm}-${dd}.xlsx`,
   })

@@ -33,3 +33,16 @@ export function exportToXlsx<T extends object>({
   XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
   XLSX.writeFile(workbook, fileName)
 }
+
+interface ExportRowsOptions {
+  rows: Array<Array<string | number | null | undefined>>
+  fileName: string
+  sheetName?: string
+}
+
+export function exportRowsToXlsx({ rows, fileName, sheetName = 'Sheet1' }: ExportRowsOptions) {
+  const worksheet = XLSX.utils.aoa_to_sheet(rows)
+  const workbook = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(workbook, worksheet, sheetName)
+  XLSX.writeFile(workbook, fileName)
+}
