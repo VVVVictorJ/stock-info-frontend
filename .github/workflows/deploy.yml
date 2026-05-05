@@ -39,6 +39,7 @@ jobs:
             type=sha
 
       - name: Build and push
+        id: build_push
         uses: docker/build-push-action@v6
         with:
           context: .
@@ -47,6 +48,15 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           file: ./Dockerfile
           platforms: linux/amd64
+
+      - name: Debug build metadata
+        run: |
+          # #region agent log
+          echo "GITHUB_SHA=${GITHUB_SHA}"
+          echo "GITHUB_REF=${GITHUB_REF}"
+          echo "PUSHED_TAGS=${{ steps.meta.outputs.tags }}"
+          echo "PUSHED_DIGEST=${{ steps.build_push.outputs.digest }}"
+          # #endregion
 
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
@@ -57,15 +67,43 @@ jobs:
           port: ${{ secrets.SERVER_SSH_PORT }}
           script: |
             set -euxo pipefail
+            # #region agent log
+            echo "=== deploy debug: host info ==="
+            hostname
+            date
+            echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}"
+            # #endregion
             if [ ! -d "${{ secrets.DEPLOY_PATH }}" ]; then
               mkdir -p "${{ secrets.DEPLOY_PATH }}"
             fi
             cd "${{ secrets.DEPLOY_PATH }}"
+            # #region agent log
+            echo "=== deploy debug: working dir ==="
+            pwd
+            ls -la
+            # #endregion
             if [ ! -f ".env" ]; then
               printf 'ALLOWED_ORIGINS=\n# 在此追加后端需要的其他环境变量，如：\n# SOME_API_KEY=\n' > .env
             fi
+            # #region agent log
+            echo "=== deploy debug: compose services before deploy ==="
+            docker compose config --services || true
+            echo "=== deploy debug: frontend service image before deploy ==="
+            docker compose images frontend || true
+            echo "=== deploy debug: remote latest image before pull ==="
+            docker image inspect vic777/stock-info-frontend:latest --format '{{.Id}} {{index .RepoDigests 0}}' || true
+            # #endregion
             docker compose pull frontend
             docker compose up -d frontend
+            # #region agent log
+            echo "=== deploy debug: frontend service after deploy ==="
+            docker compose ps frontend || true
+            docker compose images frontend || true
+            echo "=== deploy debug: running container image ==="
+            docker inspect stock-frontend --format '{{.Image}}' || true
+            echo "=== deploy debug: running index.html entry ==="
+            docker exec stock-frontend sh -lc "sed -n '1,20p' /usr/share/nginx/html/index.html" || true
+            # #endregion
             docker image prune -f
 
 
