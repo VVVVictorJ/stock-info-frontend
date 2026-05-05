@@ -14,9 +14,35 @@
       <ErrorAlert :message="errorMessage" />
 
       <el-table v-if="tableData.length" :data="tableData" border stripe size="small" @sort-change="handleSortChange">
-        <el-table-column prop="bond_code" label="债券代码" min-width="110" />
+        <el-table-column prop="bond_code" label="债券代码" min-width="130">
+          <template #default="{ row }">
+            <div class="code-cell">
+              <span class="code-text">{{ row.bond_code }}</span>
+              <el-button
+                link
+                :icon="CopyDocument"
+                class="copy-icon-btn"
+                title="复制债券代码"
+                @click.stop="copyCode(row.bond_code)"
+              />
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="bond_short_name" label="债券简称" min-width="120" />
-        <el-table-column prop="stock_code" label="正股代码" min-width="110" />
+        <el-table-column prop="stock_code" label="正股代码" min-width="130">
+          <template #default="{ row }">
+            <div class="code-cell">
+              <span class="code-text">{{ row.stock_code }}</span>
+              <el-button
+                link
+                :icon="CopyDocument"
+                class="copy-icon-btn"
+                title="复制正股代码"
+                @click.stop="copyCode(row.stock_code)"
+              />
+            </div>
+          </template>
+        </el-table-column>
         <el-table-column prop="stock_name" label="正股名称" min-width="120" />
         <el-table-column prop="issue_scale" label="发行规模(亿)" min-width="120">
           <template #default="{ row }">
@@ -62,7 +88,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import type { Sort } from 'element-plus'
-import { Download } from '@element-plus/icons-vue'
+import { CopyDocument, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 import ErrorAlert from '@/component/common/ErrorAlert.vue'
@@ -166,6 +192,32 @@ function handleDownload() {
   })
 }
 
+async function copyCode(code: string) {
+  const value = (code ?? '').trim()
+  if (!value) {
+    ElMessage.warning('无可复制代码')
+    return
+  }
+
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value)
+    } else {
+      const textArea = document.createElement('textarea')
+      textArea.value = value
+      textArea.style.position = 'fixed'
+      textArea.style.opacity = '0'
+      document.body.appendChild(textArea)
+      textArea.select()
+      document.execCommand('copy')
+      document.body.removeChild(textArea)
+    }
+    ElMessage.success(`已复制: ${value}`)
+  } catch (_err) {
+    ElMessage.error('复制失败，请手动复制')
+  }
+}
+
 onMounted(() => {
   handleQuery()
 })
@@ -210,6 +262,21 @@ onMounted(() => {
 
 .download-button {
   padding: 8px;
+}
+
+.code-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.code-text {
+  font-variant-numeric: tabular-nums;
+}
+
+.copy-icon-btn {
+  padding: 0;
+  min-height: auto;
 }
 
 .placeholder {
