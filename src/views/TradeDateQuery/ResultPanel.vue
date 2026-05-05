@@ -237,7 +237,7 @@ import { computed, ref } from 'vue'
 import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
-import { exportRowsToXlsx } from '@/utils/exportExcel'
+import { exportStockListToXlsx } from '@/utils/exportExcel'
 import type { TradeDateQueryItem } from '@/types/tradeDateQuery'
 import { Refresh, Setting, Plus, Minus, Download } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
@@ -312,7 +312,7 @@ function handleToggleWatch(row: TradeDateQueryItem) {
   emit('toggle-watch', row.stock_code, row.stock_name)
 }
 
-function handleDownload() {
+async function handleDownload() {
   if (props.leftTableData.length === 0) {
     ElMessage.warning('当前无可导出数据')
     return
@@ -326,26 +326,10 @@ function handleDownload() {
   ].join('-')
   const exportDate = props.queryDate || fallbackDate
 
-  // A-L 共 12 列；每只股票占 2 列（名称、代码），即每行 6 只股票
-  const stockPerRow = 6
-  const rows: Array<Array<string>> = [[exportDate]]
-
-  for (let i = 0; i < props.leftTableData.length; i += stockPerRow) {
-    const chunk = props.leftTableData.slice(i, i + stockPerRow)
-    const row: string[] = []
-    chunk.forEach(item => {
-      row.push(item.stock_name || '')
-      row.push(item.stock_code || '')
-    })
-    rows.push(row)
-  }
-
-  exportRowsToXlsx({
-    rows,
-    sheetName: '股票列表',
+  await exportStockListToXlsx({
+    stocks: props.leftTableData,
+    date: exportDate,
     fileName: `trade-date-query-${exportDate}.xlsx`,
-    mergeFirstRowToColumn: 12,
-    centerFirstRow: true,
   })
 }
 </script>

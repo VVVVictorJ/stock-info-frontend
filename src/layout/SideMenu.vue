@@ -104,7 +104,8 @@ const menuConfig: MenuItem[] = [
     title: '查询数据',
     icon: 'search',
     children: [
-      { index: '/stock', title: '单股查询', icon: 'document' }
+      { index: '/stock', title: '单股查询', icon: 'document' },
+      { index: '/convertible-bond-query', title: '可转债筛选查询', icon: 'dataAnalysis' }
     ]
   },
   // 历史数据查询

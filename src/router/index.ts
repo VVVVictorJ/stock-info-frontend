@@ -9,6 +9,7 @@ import DynamicBacktrack from '@/views/DynamicBacktrack/index.vue'
 import WatchlistQuery from '@/views/WatchlistQuery/index.vue'
 import SchedulerManage from '@/views/SchedulerManage/index.vue'
 import TrendPrediction from '@/views/AiAnalysis/TrendPrediction/index.vue'
+import ConvertibleBondQuery from '@/views/ConvertibleBondQuery/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -30,6 +31,12 @@ const router = createRouter({
       name: 'Stock',
       component: Stock,
       meta: { title: '单股查询' },
+    },
+    {
+      path: '/convertible-bond-query',
+      name: 'ConvertibleBondQuery',
+      component: ConvertibleBondQuery,
+      meta: { title: '可转债筛选查询' },
     },
     {
       path: '/trade-date-query',

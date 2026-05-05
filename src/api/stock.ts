@@ -36,6 +36,7 @@ import type {
   WatchlistFillKlineRequest,
   WatchlistFillKlineResponse,
 } from '@/types/watchlistQuery'
+import type { ConvertibleBondQueryResponse } from '../types/convertibleBondQuery'
 
 /**
  * 查询单只股票信息
@@ -140,4 +141,9 @@ export async function fetchWatchlistKline(params: WatchlistKlineRequest) {
 // 补齐观察表K线数据（后端路径：/stock-watchlist-query/fill-klines）
 export async function fillWatchlistKlines(params: WatchlistFillKlineRequest = {}) {
   return http.post<WatchlistFillKlineResponse>('/stock-watchlist-query/fill-klines', params)
+}
+
+// 可转债筛选查询（后端路径：/convertible-bond-query）
+export async function fetchConvertibleBondQuery() {
+  return http.post<ConvertibleBondQueryResponse>('/convertible-bond-query', {})
 }
