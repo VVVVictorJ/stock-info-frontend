@@ -8,6 +8,7 @@ on:
 env:
   REGISTRY: docker.io
   IMAGE_NAME: vic777/stock-info-frontend
+  REPO_URL: https://github.com/${{ github.repository }}.git
 
 jobs:
   build-and-deploy:
@@ -65,7 +66,7 @@ jobs:
           username: ${{ secrets.SSH_USER }}
           key: ${{ secrets.SSH_KEY }}
           port: ${{ secrets.SERVER_SSH_PORT }}
-          envs: IMAGE_NAME
+          envs: IMAGE_NAME,REPO_URL,GITHUB_SHA
           script: |
             set -euxo pipefail
             IMAGE_REPO="${IMAGE_NAME}"
@@ -111,8 +112,16 @@ jobs:
               fi
             done
             if [ "${pulled}" -ne 1 ]; then
-              echo "ERROR: failed to pull ${IMAGE_REF} after retries" >&2
-              exit 1
+              echo "=== deploy debug: pull failed, fallback to local build from source ==="
+              BUILD_DIR="/tmp/stock-info-frontend-${GITHUB_SHA}"
+              rm -rf "${BUILD_DIR}"
+              git clone "${REPO_URL}" "${BUILD_DIR}"
+              cd "${BUILD_DIR}"
+              git checkout "${GITHUB_SHA}"
+              docker build --platform linux/amd64 -t "${IMAGE_REPO}:latest" .
+              echo "=== deploy debug: fallback build completed ==="
+              docker image inspect "${IMAGE_REPO}:latest" --format '{{.Id}} {{index .RepoDigests 0}}' || docker image inspect "${IMAGE_REPO}:latest" --format '{{.Id}}'
+              cd "${{ secrets.DEPLOY_PATH }}"
             fi
             docker compose pull frontend
             docker compose up -d --force-recreate frontend
