@@ -3,7 +3,7 @@
     <el-card class="main-card">
       <template #header>
         <div class="card-header">
-          <span>可转债筛选查询</span>
+          <span>可转债筛选查询 </span>
           <div class="header-actions">
             <el-button class="download-button" title="下载当前结果" :icon="Download" @click="handleDownload" />
             <el-button type="primary" :loading="loading" @click="handleQuery">查询</el-button>
