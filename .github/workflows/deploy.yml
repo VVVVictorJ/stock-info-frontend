@@ -50,15 +50,6 @@ jobs:
           file: ./Dockerfile
           platforms: linux/amd64
 
-      - name: Debug build metadata
-        run: |
-          # #region agent log
-          echo "GITHUB_SHA=${GITHUB_SHA}"
-          echo "GITHUB_REF=${GITHUB_REF}"
-          echo "PUSHED_TAGS=${{ steps.meta.outputs.tags }}"
-          echo "PUSHED_DIGEST=${{ steps.build_push.outputs.digest }}"
-          # #endregion
-
       - name: Deploy via SSH
         uses: appleboy/ssh-action@v1.2.0
         with:
@@ -72,70 +63,32 @@ jobs:
             IMAGE_REPO="${IMAGE_NAME}"
             IMAGE_DIGEST="${{ steps.build_push.outputs.digest }}"
             IMAGE_REF="${IMAGE_REPO}@${IMAGE_DIGEST}"
-            # #region agent log
-            echo "=== deploy debug: host info ==="
-            hostname
-            date
-            echo "DEPLOY_PATH=${{ secrets.DEPLOY_PATH }}"
-            echo "IMAGE_REPO=${IMAGE_REPO}"
-            echo "IMAGE_DIGEST=${IMAGE_DIGEST}"
-            echo "IMAGE_REF=${IMAGE_REF}"
-            # #endregion
             if [ ! -d "${{ secrets.DEPLOY_PATH }}" ]; then
               mkdir -p "${{ secrets.DEPLOY_PATH }}"
             fi
             cd "${{ secrets.DEPLOY_PATH }}"
-            # #region agent log
-            echo "=== deploy debug: working dir ==="
-            pwd
-            ls -la
-            # #endregion
             if [ ! -f ".env" ]; then
               printf 'ALLOWED_ORIGINS=\n# 在此追加后端需要的其他环境变量，如：\n# SOME_API_KEY=\n' > .env
             fi
-            # #region agent log
-            echo "=== deploy debug: compose services before deploy ==="
-            docker compose config --services || true
-            echo "=== deploy debug: frontend service image before deploy ==="
-            docker compose images frontend || true
-            echo "=== deploy debug: remote latest image before pull ==="
-            docker image inspect vic777/stock-info-frontend:latest --format '{{.Id}} {{index .RepoDigests 0}}' || true
-            echo "=== deploy debug: registry connectivity ==="
-            curl -I --max-time 15 https://registry-1.docker.io/v2/ || true
-            # #endregion
             pulled=0
             for attempt in 1 2 3 4 5; do
-              echo "=== deploy debug: pull attempt ${attempt} ==="
               if docker pull "${IMAGE_REF}"; then
                 pulled=1
                 break
               fi
             done
             if [ "${pulled}" -ne 1 ]; then
-              echo "=== deploy debug: pull failed, fallback to local build from source ==="
               BUILD_DIR="/tmp/stock-info-frontend-${GITHUB_SHA}"
               rm -rf "${BUILD_DIR}"
               git clone "${REPO_URL}" "${BUILD_DIR}"
               cd "${BUILD_DIR}"
               git checkout "${GITHUB_SHA}"
               docker build --platform linux/amd64 -t "${IMAGE_REPO}:latest" .
-              echo "=== deploy debug: fallback build completed ==="
-              docker image inspect "${IMAGE_REPO}:latest" --format '{{.Id}} {{index .RepoDigests 0}}' || docker image inspect "${IMAGE_REPO}:latest" --format '{{.Id}}'
               cd "${{ secrets.DEPLOY_PATH }}"
+            else
+              docker compose pull frontend
             fi
-            docker compose pull frontend
             docker compose up -d --force-recreate frontend
-            # #region agent log
-            echo "=== deploy debug: frontend service after deploy ==="
-            docker compose ps frontend || true
-            docker compose images frontend || true
-            echo "=== deploy debug: running container image ==="
-            docker inspect stock-frontend --format '{{.Image}}' || true
-            echo "=== deploy debug: running repo digests ==="
-            docker inspect stock-frontend --format '{{json .RepoDigests}}' || true
-            echo "=== deploy debug: running index.html entry ==="
-            docker exec stock-frontend sh -lc "sed -n '1,20p' /usr/share/nginx/html/index.html" || true
-            # #endregion
             docker image prune -f
 
 
