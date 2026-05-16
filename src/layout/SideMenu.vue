@@ -62,6 +62,7 @@ import {
   Document,
   Aim,
   MagicStick,
+  Histogram,
 } from '@element-plus/icons-vue'
 
 // ==================== 图标映射配置 ====================
@@ -75,6 +76,7 @@ const iconMap: Record<string, Component> = {
   document: Document,
   aim: Aim,
   magicStick: MagicStick,
+  histogram: Histogram,
 }
 
 // ==================== 菜单项类型定义 ====================
@@ -128,6 +130,15 @@ const menuConfig: MenuItem[] = [
     icon: 'magicStick',
     children: [
       { index: '/ai-analysis/trend-prediction', title: '趋势预测', icon: 'dataAnalysis' }
+    ]
+  },
+  // 基础数据分析
+  {
+    index: 'basic-data-analysis',
+    title: '基础数据分析',
+    icon: 'histogram',
+    children: [
+      { index: '/basic-data-analysis/plate-statistics', title: '板块数据统计', icon: 'dataAnalysis' }
     ]
   },
   // 定时任务

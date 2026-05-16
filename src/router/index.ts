@@ -10,6 +10,7 @@ import WatchlistQuery from '@/views/WatchlistQuery/index.vue'
 import SchedulerManage from '@/views/SchedulerManage/index.vue'
 import TrendPrediction from '@/views/AiAnalysis/TrendPrediction/index.vue'
 import ConvertibleBondQuery from '@/views/ConvertibleBondQuery/index.vue'
+import PlateStatistics from '@/views/BasicDataAnalysis/PlateStatistics/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -79,6 +80,12 @@ const router = createRouter({
       name: 'TrendPrediction',
       component: TrendPrediction,
       meta: { title: '趋势预测' },
+    },
+    {
+      path: '/basic-data-analysis/plate-statistics',
+      name: 'PlateStatistics',
+      component: PlateStatistics,
+      meta: { title: '板块数据统计' },
     },
   ],
 })
