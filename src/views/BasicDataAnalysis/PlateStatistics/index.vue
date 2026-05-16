@@ -28,42 +28,24 @@
         <div v-show="hasChartData" ref="chartRef" class="chart-container"></div>
         <el-empty v-if="!loading && !hasChartData" description="请选择有快照数据的日期后查询" class="empty-placeholder" />
       </div>
-
-      <div class="tables-grid">
-        <div class="table-panel">
-          <div class="table-title">板块统计</div>
-          <el-table
-            :data="tableData"
-            border
-            stripe
-            height="100%"
-            row-key="plate_code"
-            :current-row-key="selectedPlateCode"
-            highlight-current-row
-            class="statistics-table"
-            @current-change="handlePlateCurrentChange"
-            @row-click="handlePlateRowClick"
-          >
-            <el-table-column type="index" label="#" width="60" />
-            <el-table-column prop="plate_name" label="板块名称" min-width="160" show-overflow-tooltip />
-            <el-table-column prop="plate_code" label="板块代码" min-width="110" />
-            <el-table-column prop="stock_count" label="股票数" min-width="100" sortable />
-          </el-table>
-        </div>
-
-        <div class="table-panel">
-          <div class="table-title">
-            板块股票
-            <span v-if="selectedPlate" class="table-subtitle">（{{ selectedPlate.plate_name }}）</span>
-          </div>
-          <el-table :data="selectedStocks" border stripe height="100%" class="statistics-table">
-            <el-table-column type="index" label="#" width="60" />
-            <el-table-column prop="stock_code" label="股票代码" min-width="120" />
-            <el-table-column prop="stock_name" label="股票名称" min-width="140" show-overflow-tooltip />
-          </el-table>
-        </div>
-      </div>
     </ResultCard>
+
+    <el-dialog v-model="stockDialogVisible" width="640px" class="stock-dialog">
+      <template #header>
+        <div class="dialog-title">
+          <span>{{ selectedPlate?.plate_name ?? '板块股票' }}</span>
+          <span v-if="selectedPlate" class="dialog-subtitle">
+            {{ selectedPlate.plate_code }}，{{ selectedPlate.stock_count }} 只股票
+          </span>
+        </div>
+      </template>
+
+      <el-table :data="selectedStocks" border stripe height="420" class="dialog-stock-table">
+        <el-table-column type="index" label="#" width="60" />
+        <el-table-column prop="stock_code" label="股票代码" min-width="140" />
+        <el-table-column prop="stock_name" label="股票名称" min-width="180" show-overflow-tooltip />
+      </el-table>
+    </el-dialog>
   </div>
 </template>
 
@@ -94,6 +76,7 @@ const errorMessage = ref('')
 const queryDate = ref(formatDate(new Date()))
 const responseData = ref<PlateStatisticsResponse | null>(null)
 const selectedPlateCode = ref('')
+const stockDialogVisible = ref(false)
 const chartRef = ref<HTMLDivElement | null>(null)
 let chartInstance: ECharts | null = null
 
@@ -139,7 +122,8 @@ async function handleQuery() {
   errorMessage.value = ''
   try {
     responseData.value = await fetchPlateStatistics({ trade_date: queryDate.value })
-    selectedPlateCode.value = responseData.value.data[0]?.plate_code ?? ''
+    selectedPlateCode.value = ''
+    stockDialogVisible.value = false
     await nextTick()
     renderChart()
     if (!hasChartData.value) {
@@ -150,15 +134,6 @@ async function handleQuery() {
   } finally {
     loading.value = false
   }
-}
-
-function handlePlateRowClick(row: PlateStatisticsItem) {
-  selectedPlateCode.value = row.plate_code
-}
-
-function handlePlateCurrentChange(row?: PlateStatisticsItem) {
-  if (!row) return
-  selectedPlateCode.value = row.plate_code
 }
 
 function renderChart() {
@@ -181,6 +156,7 @@ function renderChart() {
     const data = params.data as ChartNode | undefined
     if (data?.plateCode) {
       selectedPlateCode.value = data.plateCode
+      stockDialogVisible.value = true
     }
   })
 }
@@ -293,46 +269,27 @@ function formatDate(date: Date) {
   height: 100%;
 }
 
-.tables-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-top: 12px;
-  min-height: 460px;
-}
-
-.table-panel {
-  min-height: 460px;
+.dialog-title {
   display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-
-.table-title {
-  flex-shrink: 0;
-  margin-bottom: 8px;
-  color: #303133;
+  align-items: baseline;
+  gap: 12px;
   font-weight: 600;
 }
 
-.table-subtitle {
+.dialog-subtitle {
   color: #606266;
+  font-size: 13px;
   font-weight: 400;
 }
 
-.statistics-table {
-  min-height: 0;
+.dialog-stock-table {
+  width: 100%;
 }
 
 @media (max-width: 1200px) {
   .chart-panel {
     height: 560px;
     min-height: 560px;
-  }
-
-  .tables-grid {
-    grid-template-columns: 1fr;
-    grid-template-rows: 360px 360px;
   }
 }
 </style>
