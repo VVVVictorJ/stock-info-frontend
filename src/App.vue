@@ -1,9 +1,15 @@
 <script setup lang="ts">
+import { computed } from 'vue'
+import { RouterView, useRoute } from 'vue-router'
 import LayoutContainer from './layout/LayoutContainer.vue'
+
+const route = useRoute()
+const useStandaloneLayout = computed(() => route.meta.standaloneLayout === true)
 </script>
 
 <template>
-  <LayoutContainer />
+  <RouterView v-if="useStandaloneLayout" />
+  <LayoutContainer v-else />
 </template>
 
 <!-- 全局样式，确保页面铺满可视区域 -->

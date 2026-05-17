@@ -11,6 +11,7 @@ import SchedulerManage from '@/views/SchedulerManage/index.vue'
 import TrendPrediction from '@/views/AiAnalysis/TrendPrediction/index.vue'
 import ConvertibleBondQuery from '@/views/ConvertibleBondQuery/index.vue'
 import PlateStatistics from '@/views/BasicDataAnalysis/PlateStatistics/index.vue'
+import BaguaMobile from '@/views/BaguaMobile/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -87,6 +88,12 @@ const router = createRouter({
       component: PlateStatistics,
       meta: { title: '板块数据统计' },
     },
+    {
+      path: '/bagua',
+      name: 'BaguaMobile',
+      component: BaguaMobile,
+      meta: { title: '八卦计算', standaloneLayout: true },
+    },
   ],
 })
 
@@ -98,6 +105,11 @@ function isAuthenticated(): boolean {
 router.beforeEach((to, _from, next) => {
   const meta = (to.meta || {}) as any
   document.title = meta.title ? `${meta.title} - Stock Info` : 'Stock Info'
+
+  if (window.location.hostname === 'bagua.stock-intelligence-analysis.xyz' && to.path === '/') {
+    next({ path: '/bagua', replace: true })
+    return
+  }
 
   if (meta.requiresAuth && !isAuthenticated()) {
     next({ path: '/' })
