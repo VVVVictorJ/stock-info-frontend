@@ -144,9 +144,9 @@ export async function fillWatchlistKlines(params: WatchlistFillKlineRequest = {}
   return http.post<WatchlistFillKlineResponse>('/stock-watchlist-query/fill-klines', params)
 }
 
-// 可转债筛选查询（后端路径：/convertible-bond-query）
+// 可转债筛选查询（后端路径：/convertible-bond-query；东方财富侧可能较慢）
 export async function fetchConvertibleBondQuery() {
-  return http.post<ConvertibleBondQueryResponse>('/convertible-bond-query', {})
+  return http.post<ConvertibleBondQueryResponse>('/convertible-bond-query', {}, { timeout: 90000 })
 }
 
 // 板块数据统计（后端路径：/basic-data-analysis/plate-statistics）
