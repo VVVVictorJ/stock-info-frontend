@@ -13,7 +13,15 @@
 
       <ErrorAlert :message="errorMessage" />
 
-      <el-table v-if="tableData.length" :data="tableData" border stripe size="small" @sort-change="handleSortChange">
+      <el-table
+        v-if="tableData.length"
+        :data="tableData"
+        border
+        stripe
+        size="small"
+        :row-class-name="convertibleBondRowClassName"
+        @sort-change="handleSortChange"
+      >
         <el-table-column prop="bond_code" label="债券代码" min-width="130">
           <template #default="{ row }">
             <div class="code-cell">
@@ -131,6 +139,10 @@ function formatNullableNumber(value: number | null): string {
   return formatNumber(value)
 }
 
+function convertibleBondRowClassName({ row }: { row: ConvertibleBondItem }) {
+  return row.near_last_trading_day ? 'convertible-near-last-trade-row' : ''
+}
+
 function handleSortChange({ prop, order }: { prop: string; order: Sort['order'] | null }) {
   if (prop === 'transfer_premium_ratio' || prop === 'stock_price') {
     sortState.value = { prop, order: order as SortOrder }
@@ -176,6 +188,7 @@ function handleDownload() {
       transfer_premium_ratio: formatNumber(item.transfer_premium_ratio),
       stock_price: formatNullableNumber(item.stock_price),
       bond_price: formatNullableNumber(item.bond_price),
+      near_last_trade: item.near_last_trading_day ? '是' : '否',
     })),
     columns: [
       { key: 'bond_code', header: '债券代码' },
@@ -186,6 +199,7 @@ function handleDownload() {
       { key: 'transfer_premium_ratio', header: '转股溢价率(%)' },
       { key: 'stock_price', header: '正股价格' },
       { key: 'bond_price', header: '债券现价' },
+      { key: 'near_last_trade', header: '临近最后交易日(3日内)' },
     ],
     fileName: `convertible-bond-query-${datePart}.xlsx`,
     sheetName: '可转债筛选查询',
@@ -281,5 +295,13 @@ onMounted(() => {
 
 .placeholder {
   color: var(--el-text-color-secondary);
+}
+
+:deep(.convertible-near-last-trade-row) {
+  color: var(--el-color-danger);
+}
+
+:deep(.convertible-near-last-trade-row .cell) {
+  color: var(--el-color-danger);
 }
 </style>

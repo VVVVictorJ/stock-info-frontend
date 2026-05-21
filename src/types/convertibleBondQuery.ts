@@ -7,6 +7,8 @@ export interface ConvertibleBondItem {
   transfer_premium_ratio: number
   stock_price: number | null
   bond_price: number | null
+  /** DELIST_DATE 非空且距「最后交易日」在 [0,3] 个日历日内 */
+  near_last_trading_day?: boolean
 }
 
 export interface ConvertibleBondQueryResponse {
