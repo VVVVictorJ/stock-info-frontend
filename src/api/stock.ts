@@ -38,6 +38,13 @@ import type {
 } from '@/types/watchlistQuery'
 import type { ConvertibleBondQueryResponse } from '../types/convertibleBondQuery'
 import type { PlateStatisticsRequest, PlateStatisticsResponse } from '@/types/basicDataAnalysis'
+import type {
+  MonthlyKlineQueryRequest,
+  MonthlyKlineQueryResponse,
+  MonthlyMaCrossRequest,
+  MonthlyMaCrossResponse,
+} from '@/types/multiLevelFilter'
+import type { StockPlateListItem } from '@/types/stockPlate'
 
 /**
  * 查询单只股票信息
@@ -152,4 +159,23 @@ export async function fetchConvertibleBondQuery() {
 // 板块数据统计（后端路径：/basic-data-analysis/plate-statistics）
 export async function fetchPlateStatistics(params: PlateStatisticsRequest) {
   return http.post<PlateStatisticsResponse>('/basic-data-analysis/plate-statistics', params)
+}
+
+// 月 K 查询（后端路径：/monthly-klines/query）
+export async function fetchMonthlyKlineQuery(body: MonthlyKlineQueryRequest) {
+  return http.post<MonthlyKlineQueryResponse>('/monthly-klines/query', body)
+}
+
+// 多级筛选：月线 MA5 刚上穿 MA20（可能请求极多只个股，超时放宽）
+export async function runMonthlyMaCrossFilter(body: MonthlyMaCrossRequest = {}) {
+  return http.post<MonthlyMaCrossResponse>(
+    '/multi-level-filter/monthly-ma-cross',
+    body,
+    { timeout: 300_000 },
+  )
+}
+
+// 板块字典（后端路径：/stock-plates）
+export async function fetchStockPlatesList() {
+  return http.get<StockPlateListItem[]>('/stock-plates')
 }

@@ -10,6 +10,7 @@ import WatchlistQuery from '@/views/WatchlistQuery/index.vue'
 import SchedulerManage from '@/views/SchedulerManage/index.vue'
 import TrendPrediction from '@/views/AiAnalysis/TrendPrediction/index.vue'
 import ConvertibleBondQuery from '@/views/ConvertibleBondQuery/index.vue'
+import MultiLevelFilter from '@/views/MultiLevelFilter/index.vue'
 import PlateStatistics from '@/views/BasicDataAnalysis/PlateStatistics/index.vue'
 import BaguaMobile from '@/views/BaguaMobile/index.vue'
 
@@ -39,6 +40,12 @@ const router = createRouter({
       name: 'ConvertibleBondQuery',
       component: ConvertibleBondQuery,
       meta: { title: '可转债筛选查询' },
+    },
+    {
+      path: '/multi-level-filter',
+      name: 'MultiLevelFilter',
+      component: MultiLevelFilter,
+      meta: { title: '多级筛选' },
     },
     {
       path: '/trade-date-query',

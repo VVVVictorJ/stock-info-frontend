@@ -107,6 +107,7 @@ const menuConfig: MenuItem[] = [
     icon: 'search',
     children: [
       { index: '/stock', title: '单股查询', icon: 'document' },
+      { index: '/multi-level-filter', title: '多级筛选', icon: 'histogram' },
       { index: '/convertible-bond-query', title: '可转债筛选查询', icon: 'dataAnalysis' }
     ]
   },
