@@ -46,6 +46,12 @@ export interface MonthlyMaCrossResponse {
   skipped: SkippedStock[]
 }
 
+/** `/multi-level-filter/daily-ma-cross-after-monthly`：月线扫描 + 日线在刚上穿；`daily_refinement` 中的 MA 为日线口径 */
+export interface DailyAfterMonthlyMaCrossResponse {
+  monthly: MonthlyMaCrossResponse
+  daily_refinement: MonthlyMaCrossResponse
+}
+
 export interface MonthlyKlineQueryRequest {
   stock_code: string
 }

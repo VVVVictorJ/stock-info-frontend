@@ -39,6 +39,7 @@ import type {
 import type { ConvertibleBondQueryResponse } from '../types/convertibleBondQuery'
 import type { PlateStatisticsRequest, PlateStatisticsResponse } from '@/types/basicDataAnalysis'
 import type {
+  DailyAfterMonthlyMaCrossResponse,
   MonthlyKlineQueryRequest,
   MonthlyKlineQueryResponse,
   MonthlyMaCrossRequest,
@@ -170,6 +171,15 @@ export async function fetchMonthlyKlineQuery(body: MonthlyKlineQueryRequest) {
 export async function runMonthlyMaCrossFilter(body: MonthlyMaCrossRequest = {}) {
   return http.post<MonthlyMaCrossResponse>(
     '/multi-level-filter/monthly-ma-cross',
+    body,
+    { timeout: 300_000 },
+  )
+}
+
+// 多级筛选：在月线命中基础上拉日线判断是否 MA5×MA20 刚上穿；附带返回月线扫描结果便于两 Tab 同步
+export async function runDailyMaCrossAfterMonthly(body: MonthlyMaCrossRequest = {}) {
+  return http.post<DailyAfterMonthlyMaCrossResponse>(
+    '/multi-level-filter/daily-ma-cross-after-monthly',
     body,
     { timeout: 300_000 },
   )

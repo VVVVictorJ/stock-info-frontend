@@ -21,19 +21,31 @@
             />
           </el-select>
           <div class="query-actions-inline">
-            <el-button type="primary" :loading="loading" @click="runMaCross">
+            <el-button
+              type="primary"
+              :loading="loadingMonthly"
+              :disabled="loadingDaily"
+              @click="runMaCross"
+            >
               MA5×MA20 月线刚上穿
             </el-button>
-            <el-button disabled title="预留">待扩展 1</el-button>
+            <el-button
+              type="primary"
+              plain
+              :loading="loadingDaily"
+              :disabled="loadingMonthly"
+              @click="runDailyAfterMonthly"
+            >
+              MA5×MA20 日线刚上穿（基于月线命中）
+            </el-button>
             <el-button disabled title="预留">待扩展 2</el-button>
           </div>
         </div>
       </div>
       <p class="hint">
-        依据 <code>stock_snapshots</code> 每股最新快照去重拉取月线（东方财富月 K，klt=103；
-        beg/end 为东财要求的 YYYYMMDD），以<strong>序列最后一根月 K</strong>为「当前」判断是否符合刚上穿；价格为快照最新价；板块与同库
-        <code>stock_table</code> /
-        <code>stock_plate</code> 关联，与<strong>交易日查询</strong>同源。
+        月线：以东财月 K（klt=103；beg/end YYYYMMDD）作用于 <code>stock_snapshots</code> 去重快照股，最后一根月 K 为「当前」。日线二次筛选：仅对月线命中股拉日 K（klt=101，约近 150
+        个自然日、不写库），以<strong>最后一个交易日</strong>判断 MA5 是否刚上穿 MA20。
+        <code>stock_table</code> / <code>stock_plate</code> 与交易日查询同源。
       </p>
       <el-alert
         v-if="errorMessage"
@@ -47,89 +59,54 @@
 
     <el-card shadow="never" class="result-card">
       <template #header>
-        <span>命中标的（{{ items.length }}）</span>
+        <span>命中标的</span>
       </template>
-      <div class="table-wrap hits-table-wrap">
-        <el-table
-          :data="items"
-          stripe
-          border
-          height="100%"
-          empty-text="暂无数据，请先查询"
-          class="scroll-table"
-        >
-          <el-table-column prop="stock_code" label="代码" width="110" />
-          <el-table-column prop="stock_name" label="名称" min-width="130" />
-          <el-table-column label="板块" min-width="200">
-            <template #default="{ row }">
-              <div v-if="row.plates?.length" class="plate-tags">
-                <el-tag
-                  v-for="plate in row.plates"
-                  :key="plate.plate_code"
-                  size="small"
-                  class="plate-tag"
-                  effect="light"
-                >
-                  {{ plate.name }}
-                </el-tag>
-              </div>
-              <span v-else>-</span>
-            </template>
-          </el-table-column>
-          <el-table-column
-            label="当前价格"
-            prop="latest_price"
-            width="130"
-            align="right"
-            sortable
-            :sort-method="sortLatestPrice"
-          >
-            <template #default="{ row }">
-              {{ row.latest_price }}
-            </template>
-          </el-table-column>
-        </el-table>
-      </div>
+      <el-tabs v-model="activeHitTab" class="hit-tabs" type="border-card">
+        <el-tab-pane name="monthly">
+          <template #label>
+            <span>
+              月线命中
+              <el-badge :value="items.length" type="primary" class="tab-badge-ml" />
+            </span>
+          </template>
+          <MaCrossHitsTable :data="items" empty-text="暂无数据，请先查询" />
+        </el-tab-pane>
+        <el-tab-pane name="daily">
+          <template #label>
+            <span>
+              日线二次命中
+              <el-badge :value="dailyItems.length" type="success" class="tab-badge-ml" />
+            </span>
+          </template>
+          <MaCrossHitsTable
+            :data="dailyItems"
+            empty-text="暂无数据：月线无命中，或日线条件未满足；仅点「日线二次」时也会拉月线并同步两 Tab，本 Tab 的 MA 为日线口径。"
+          />
+        </el-tab-pane>
+      </el-tabs>
     </el-card>
 
-    <el-collapse v-model="collapseActiveSkips" class="skip-collapse">
-      <el-collapse-item name="skipped">
+    <el-collapse v-model="collapseMonthlySkips" class="skip-collapse">
+      <el-collapse-item name="monthly_skipped">
         <template #title>
           <span class="collapse-title-text">
-            未纳入结果（{{ skippedCount }} 只）
-            <span v-if="skippedCount === 0" class="collapse-title-muted">暂无</span>
+            未纳入月线结果（{{ monthlySkippedCount }} 只）
+            <span v-if="monthlySkippedCount === 0" class="collapse-title-muted">暂无</span>
           </span>
         </template>
-        <div class="table-wrap skip-table-wrap">
-          <el-table
-            :data="skippedFull"
-            stripe
-            border
-            height="100%"
-            empty-text="无跳过记录"
-            class="scroll-table"
-          >
-            <el-table-column prop="stock_code" label="代码" width="110" />
-            <el-table-column prop="stock_name" label="名称" min-width="120" />
-            <el-table-column label="板块" min-width="200">
-              <template #default="{ row }">
-                <div v-if="row.plates?.length" class="plate-tags">
-                  <el-tag
-                    v-for="plate in row.plates"
-                    :key="plate.plate_code"
-                    size="small"
-                    class="plate-tag"
-                    effect="light"
-                  >
-                    {{ plate.name }}
-                  </el-tag>
-                </div>
-                <span v-else>-</span>
-              </template>
-            </el-table-column>
-            <el-table-column prop="reason" label="原因" show-overflow-tooltip min-width="340" />
-          </el-table>
-        </div>
+        <SkipReasonTable :data="skippedFull" empty-text="无跳过记录" />
+      </el-collapse-item>
+    </el-collapse>
+
+    <el-collapse v-model="collapseDailySkips" class="skip-collapse">
+      <el-collapse-item name="daily_skipped">
+        <template #title>
+          <span class="collapse-title-text">
+            日线未达标（来自月线命中，{{ dailySkippedCount }} 只）
+            <span v-if="dailySkippedCount === 0" class="collapse-title-muted">暂无</span>
+          </span>
+        </template>
+        <SkipReasonTable :data="dailySkippedFull" empty-text="无记录（或未运行日线二次筛查）" />
       </el-collapse-item>
     </el-collapse>
   </div>
@@ -137,27 +114,32 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue'
-import { runMonthlyMaCrossFilter, fetchStockPlatesList } from '@/api/stock'
-import type { MonthlyMaCrossRequest, MonthlyMaCrossItem, SkippedStock } from '@/types/multiLevelFilter'
+import { runMonthlyMaCrossFilter, runDailyMaCrossAfterMonthly, fetchStockPlatesList } from '@/api/stock'
+import type {
+  MonthlyMaCrossRequest,
+  MonthlyMaCrossItem,
+  SkippedStock,
+} from '@/types/multiLevelFilter'
+import MaCrossHitsTable from './MaCrossHitsTable.vue'
+import SkipReasonTable from './SkipReasonTable.vue'
 
-const loading = ref(false)
+const loadingMonthly = ref(false)
+const loadingDaily = ref(false)
 const errorMessage = ref('')
 const items = ref<MonthlyMaCrossItem[]>([])
+const dailyItems = ref<MonthlyMaCrossItem[]>([])
 const skippedFull = ref<SkippedStock[]>([])
+const dailySkippedFull = ref<SkippedStock[]>([])
 const plateOptions = ref<Array<{ plate_code: string; name: string }>>([])
 const filterPlates = ref<string[]>([])
-/** 折叠面板：默认收起「未纳入结果」表格 */
-const collapseActiveSkips = ref<string[]>([])
+/** 月线跳过：默认收起 */
+const collapseMonthlySkips = ref<string[]>([])
+/** 日线未达标：默认收起 */
+const collapseDailySkips = ref<string[]>([])
+const activeHitTab = ref<'monthly' | 'daily'>('monthly')
 
-const skippedCount = computed(() => skippedFull.value.length)
-
-function sortLatestPrice(a: MonthlyMaCrossItem, b: MonthlyMaCrossItem) {
-  const na = Number.parseFloat(String(a.latest_price ?? ''))
-  const nb = Number.parseFloat(String(b.latest_price ?? ''))
-  const fa = Number.isFinite(na) ? na : Number.NEGATIVE_INFINITY
-  const fb = Number.isFinite(nb) ? nb : Number.NEGATIVE_INFINITY
-  return fa - fb
-}
+const monthlySkippedCount = computed(() => skippedFull.value.length)
+const dailySkippedCount = computed(() => dailySkippedFull.value.length)
 
 function mapItem(row: MonthlyMaCrossItem): MonthlyMaCrossItem {
   return {
@@ -181,16 +163,22 @@ async function loadPlateDict() {
   }
 }
 
+function buildPayload(): MonthlyMaCrossRequest {
+  return filterPlates.value.length > 0 ? { filter_plate_codes: [...filterPlates.value] } : {}
+}
+
 async function runMaCross() {
   errorMessage.value = ''
-  loading.value = true
+  loadingMonthly.value = true
   items.value = []
+  dailyItems.value = []
   skippedFull.value = []
-  collapseActiveSkips.value = []
+  dailySkippedFull.value = []
+  collapseMonthlySkips.value = []
+  collapseDailySkips.value = []
+  activeHitTab.value = 'monthly'
   try {
-    const payload: MonthlyMaCrossRequest =
-      filterPlates.value.length > 0 ? { filter_plate_codes: [...filterPlates.value] } : {}
-    const res = await runMonthlyMaCrossFilter(payload)
+    const res = await runMonthlyMaCrossFilter(buildPayload())
     items.value = (res.items ?? []).map((row) => mapItem(row))
     skippedFull.value = (res.skipped ?? []).map((s) => ({
       stock_code: s.stock_code,
@@ -205,7 +193,38 @@ async function runMaCross() {
         : String(e)
     errorMessage.value = msg || '请求失败'
   } finally {
-    loading.value = false
+    loadingMonthly.value = false
+  }
+}
+
+async function runDailyAfterMonthly() {
+  errorMessage.value = ''
+  loadingDaily.value = true
+  try {
+    const res = await runDailyMaCrossAfterMonthly(buildPayload())
+    items.value = (res.monthly?.items ?? []).map((row) => mapItem(row))
+    skippedFull.value = (res.monthly?.skipped ?? []).map((s) => ({
+      stock_code: s.stock_code,
+      stock_name: s.stock_name ?? '',
+      plates: s.plates ?? [],
+      reason: s.reason ?? '',
+    }))
+    dailyItems.value = (res.daily_refinement?.items ?? []).map((row) => mapItem(row))
+    dailySkippedFull.value = (res.daily_refinement?.skipped ?? []).map((s) => ({
+      stock_code: s.stock_code,
+      stock_name: s.stock_name ?? '',
+      plates: s.plates ?? [],
+      reason: s.reason ?? '',
+    }))
+    activeHitTab.value = 'daily'
+  } catch (e: unknown) {
+    const msg =
+      e instanceof Error ? e.message : typeof e === 'object' && e !== null && 'message' in e
+        ? String((e as { message: unknown }).message)
+        : String(e)
+    errorMessage.value = msg || '请求失败'
+  } finally {
+    loadingDaily.value = false
   }
 }
 
@@ -265,6 +284,7 @@ onMounted(() => {
   font-size: 13px;
   line-height: 1.6;
 }
+
 .toolbar-card .err {
   margin-top: 12px;
 }
@@ -284,20 +304,30 @@ onMounted(() => {
   padding-top: 8px;
 }
 
-.table-wrap {
+.hit-tabs {
   flex: 1;
-  min-height: 260px;
-  height: clamp(260px, 42vh, 520px);
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
-.hits-table-wrap {
+.hit-tabs :deep(.el-tabs__content) {
   flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
-.scroll-table {
-  width: 100%;
+.hit-tabs :deep(.el-tab-pane) {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tab-badge-ml :deep(.el-badge__content) {
+  translate: 4px 0;
 }
 
 .skip-collapse {
@@ -318,20 +348,5 @@ onMounted(() => {
 
 .skip-collapse :deep(.el-collapse-item__content) {
   padding-bottom: 12px;
-}
-
-.skip-table-wrap {
-  height: clamp(240px, 36vh, 440px);
-  min-height: 200px;
-}
-
-.plate-tags {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-
-.plate-tag {
-  margin: 2px 0;
 }
 </style>
