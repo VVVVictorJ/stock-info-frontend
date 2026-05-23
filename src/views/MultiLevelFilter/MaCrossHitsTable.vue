@@ -1,7 +1,7 @@
 <template>
   <div class="table-wrap hits-table-wrap">
     <el-table
-      :data="data"
+      :data="pagedRows"
       stripe
       border
       height="100%"
@@ -43,16 +43,42 @@
       <el-table-column prop="ma5_prev" label="MA5（前序）" width="118" align="right" />
       <el-table-column prop="ma20_prev" label="MA20（前序）" width="128" align="right" />
     </el-table>
+    <div v-if="data.length > 0" class="pager-bar">
+      <el-pagination
+        v-model:current-page="currentPage"
+        layout="total, prev, pager, next, jumper"
+        :page-size="PAGE_SIZE"
+        :total="data.length"
+        small
+      />
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref, computed, watch } from 'vue'
 import type { MonthlyMaCrossItem } from '@/types/multiLevelFilter'
 
-defineProps<{
+const PAGE_SIZE = 30
+
+const props = defineProps<{
   data: MonthlyMaCrossItem[]
   emptyText?: string
 }>()
+
+const currentPage = ref(1)
+
+watch(
+  () => props.data,
+  () => {
+    currentPage.value = 1
+  },
+)
+
+const pagedRows = computed(() => {
+  const start = (currentPage.value - 1) * PAGE_SIZE
+  return props.data.slice(start, start + PAGE_SIZE)
+})
 
 function sortLatestPrice(a: MonthlyMaCrossItem, b: MonthlyMaCrossItem) {
   const na = Number.parseFloat(String(a.latest_price ?? ''))
@@ -78,6 +104,13 @@ function sortLatestPrice(a: MonthlyMaCrossItem, b: MonthlyMaCrossItem) {
 
 .scroll-table {
   width: 100%;
+}
+
+.pager-bar {
+  flex-shrink: 0;
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 10px;
 }
 
 .plate-tags {
