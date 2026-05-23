@@ -50,6 +50,7 @@ import type { StockPlateListItem } from '@/types/stockPlate'
 /**
  * 查询单只股票信息
  * GET /api/stock
+ * 
  * query: code, source(em|ak), raw_only
  */
 export async function fetchSingleStock(params: FetchSingleStockParams) {
