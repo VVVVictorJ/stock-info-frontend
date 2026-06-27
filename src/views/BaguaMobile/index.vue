@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed, reactive } from 'vue'
+import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { fetchAlmanac, fetchHetuLookup, fetchLuoshuBranchLookup, fetchLuoshuStemLookup } from '@/api/bagua'
 
 type PositionKey = 'top0' | 'top1' | 'top2' | 'top3' | 'bottom0' | 'bottom1' | 'bottom2' | 'bottom3'
 
@@ -11,6 +12,9 @@ interface BaguaSide {
 }
 
 type Formula = PositionKey[]
+
+const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
+const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
 
 const rowLabels = ['一', '二', '三', '四', '五', '六', '七', '八']
 const maxResultColumns = 6
@@ -31,6 +35,17 @@ const sides = reactive<BaguaSide[]>([
     values: createEmptyValues(),
   },
 ])
+
+const riverRow2Stems = ref(['', '', '', ''])
+const riverRow3Stems = ref(['', '', '', ''])
+const luoRow2Stems = ref(['', '', '', ''])
+const luoRow3Branches = ref(['', '', '', ''])
+const yearBranch = ref('')
+const hetuLookupMap = ref<Map<string, number>>(new Map())
+const luoshuStemMap = ref<Map<string, number>>(new Map())
+const luoshuBranchMap = ref<Map<string, number>>(new Map())
+const dataLoading = ref(true)
+const dataError = ref('')
 
 const formulas: Formula[][] = [
   [
@@ -87,13 +102,6 @@ const formulas: Formula[][] = [
   ],
 ]
 
-const resultTables = computed(() =>
-  sides.map((side) => ({
-    id: side.id,
-    rows: formulas.map((row) => row.map((formula) => calculateFormula(side.values, formula))),
-  })),
-)
-
 function createEmptyValues(): Record<PositionKey, string> {
   return {
     top0: '',
@@ -106,6 +114,79 @@ function createEmptyValues(): Record<PositionKey, string> {
     bottom3: '',
   }
 }
+
+function lookupInMap(map: Map<string, number>, rowKey: string, colKey: string): string {
+  if (!rowKey || !colKey) {
+    return ''
+  }
+  const value = map.get(`${rowKey}|${colKey}`)
+  return value === undefined ? '' : String(value)
+}
+
+function lookupValue(stem: string, branch: string): string {
+  return lookupInMap(hetuLookupMap.value, branch, stem)
+}
+
+const riverTopNumbers = computed(() => {
+  const branch = yearBranch.value
+  return riverRow2Stems.value.map((stem) => lookupValue(stem, branch))
+})
+
+const riverBottomNumbers = computed(() => {
+  const branch = yearBranch.value
+  return riverRow3Stems.value.map((stem) => lookupValue(stem, branch))
+})
+
+const luoTopNumbers = computed(() => {
+  const branch = yearBranch.value
+  return luoRow2Stems.value.map((stem) => lookupInMap(luoshuStemMap.value, branch, stem))
+})
+
+const luoBottomNumbers = computed(() => {
+  const rowKey = yearBranch.value
+  return luoRow3Branches.value.map((colKey) => lookupInMap(luoshuBranchMap.value, rowKey, colKey))
+})
+
+function syncRiverValues() {
+  const river = sides.find((side) => side.id === 'river')
+  if (!river) {
+    return
+  }
+
+  topKeys.forEach((key, index) => {
+    river.values[key] = riverTopNumbers.value[index] ?? ''
+  })
+
+  bottomKeys.forEach((key, index) => {
+    river.values[key] = lookupValue(riverRow3Stems.value[index] ?? '', yearBranch.value)
+  })
+}
+
+watch([riverTopNumbers, riverRow3Stems, yearBranch], syncRiverValues, { deep: true })
+
+function syncLuoValues() {
+  const luo = sides.find((side) => side.id === 'luo')
+  if (!luo) {
+    return
+  }
+
+  topKeys.forEach((key, index) => {
+    luo.values[key] = luoTopNumbers.value[index] ?? ''
+  })
+
+  bottomKeys.forEach((key, index) => {
+    luo.values[key] = luoBottomNumbers.value[index] ?? ''
+  })
+}
+
+watch([luoTopNumbers, luoRow3Branches, yearBranch], syncLuoValues, { deep: true })
+
+const resultTables = computed(() =>
+  sides.map((side) => ({
+    id: side.id,
+    rows: formulas.map((row) => row.map((formula) => calculateFormula(side.values, formula))),
+  })),
+)
 
 function calculateFormula(values: Record<PositionKey, string>, formula: Formula): string {
   const numbers = formula.map((key) => toNumber(values[key]))
@@ -133,13 +214,45 @@ function getResultRows(sideId: BaguaSide['id']): string[][] {
   return resultTables.value.find((table) => table.id === sideId)?.rows ?? []
 }
 
-function getTopKey(index: number): PositionKey {
-  return topKeys[index] ?? 'top0'
+function buildLookupMap(cells: { row_key: string; col_key: string; value: number }[]) {
+  const map = new Map<string, number>()
+  for (const cell of cells) {
+    map.set(`${cell.row_key}|${cell.col_key}`, cell.value)
+  }
+  return map
 }
 
-function getBottomKey(index: number): PositionKey {
-  return bottomKeys[index] ?? 'bottom0'
+async function loadBaguaData() {
+  dataLoading.value = true
+  dataError.value = ''
+
+  const now = new Date()
+  const year = String(now.getFullYear())
+  const month = String(now.getMonth() + 1)
+  const day = String(now.getDate())
+
+  try {
+    const [hetu, luoshuStem, luoshuBranch, almanac] = await Promise.all([
+      fetchHetuLookup(),
+      fetchLuoshuStemLookup(),
+      fetchLuoshuBranchLookup(),
+      fetchAlmanac(year, month, day),
+    ])
+
+    hetuLookupMap.value = buildLookupMap(hetu.cells)
+    luoshuStemMap.value = buildLookupMap(luoshuStem.cells)
+    luoshuBranchMap.value = buildLookupMap(luoshuBranch.cells)
+    yearBranch.value = almanac.year_branch
+    syncRiverValues()
+    syncLuoValues()
+  } catch (error) {
+    dataError.value = error instanceof Error ? error.message : '数据加载失败'
+  } finally {
+    dataLoading.value = false
+  }
 }
+
+onMounted(loadBaguaData)
 </script>
 
 <template>
@@ -147,7 +260,9 @@ function getBottomKey(index: number): PositionKey {
     <section class="page-header">
       <p class="eyebrow">八卦计算</p>
       <h1>河洛排盘</h1>
-      <p class="description">填写上下两行数字，下方表格会按固定公式实时生成结果。</p>
+      <p class="description">河洛均通过天干地支查表自动填充数字。</p>
+      <p v-if="dataLoading" class="status-text">正在加载河图与黄历数据…</p>
+      <p v-else-if="dataError" class="status-text error">{{ dataError }}</p>
     </section>
 
     <section class="bagua-groups" aria-label="河洛输入与结果">
@@ -155,35 +270,83 @@ function getBottomKey(index: number): PositionKey {
         <div class="input-area">
           <h2>{{ side.title }}</h2>
 
-          <div class="input-grid" :aria-label="`${side.title}输入区`">
-            <template v-for="(label, index) in side.labels" :key="`${side.id}-top-${index}`">
-              <input
-                v-model="side.values[getTopKey(index)]"
-                class="number-input top-number"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                type="number"
-                aria-label="上方数字"
-              />
+          <div v-if="side.id === 'river'" class="input-grid" :aria-label="`${side.title}输入区`">
+            <template v-for="(num, index) in riverTopNumbers" :key="`${side.id}-top-${index}`">
+              <div class="number-display top-number" aria-label="上方数字">
+                {{ num }}
+              </div>
             </template>
 
-            <template v-for="(label, index) in side.labels" :key="`${side.id}-stem-${index}`">
-              <div class="label-cell stem">{{ label.slice(0, 1) }}</div>
+            <template v-for="(_, index) in riverRow2Stems" :key="`${side.id}-stem-select-${index}`">
+              <select
+                v-model="riverRow2Stems[index]"
+                class="stem-select"
+                :aria-label="`第二行天干${index + 1}`"
+              >
+                <option value="">—</option>
+                <option v-for="stem in HEAVENLY_STEMS" :key="stem" :value="stem">
+                  {{ stem }}
+                </option>
+              </select>
             </template>
 
-            <template v-for="(label, index) in side.labels" :key="`${side.id}-branch-${index}`">
-              <div class="label-cell branch">{{ label.slice(1) }}</div>
+            <template v-for="(_, index) in riverRow3Stems" :key="`${side.id}-bottom-select-${index}`">
+              <select
+                v-model="riverRow3Stems[index]"
+                class="stem-select bottom-stem"
+                :aria-label="`第三行天干${index + 1}`"
+              >
+                <option value="">—</option>
+                <option v-for="stem in HEAVENLY_STEMS" :key="stem" :value="stem">
+                  {{ stem }}
+                </option>
+              </select>
             </template>
 
-            <template v-for="(label, index) in side.labels" :key="`${side.id}-bottom-${index}`">
-              <input
-                v-model="side.values[getBottomKey(index)]"
-                class="number-input bottom-number"
-                inputmode="numeric"
-                pattern="[0-9]*"
-                type="number"
-                aria-label="下方数字"
-              />
+            <template v-for="(num, index) in riverBottomNumbers" :key="`${side.id}-bottom-num-${index}`">
+              <div class="number-display bottom-number" aria-label="下方数字">
+                {{ num }}
+              </div>
+            </template>
+          </div>
+
+          <div v-else-if="side.id === 'luo'" class="input-grid" :aria-label="`${side.title}输入区`">
+            <template v-for="(num, index) in luoTopNumbers" :key="`${side.id}-top-${index}`">
+              <div class="number-display top-number" aria-label="上方数字">
+                {{ num }}
+              </div>
+            </template>
+
+            <template v-for="(_, index) in luoRow2Stems" :key="`${side.id}-stem-select-${index}`">
+              <select
+                v-model="luoRow2Stems[index]"
+                class="stem-select"
+                :aria-label="`第二行天干${index + 1}`"
+              >
+                <option value="">—</option>
+                <option v-for="stem in HEAVENLY_STEMS" :key="stem" :value="stem">
+                  {{ stem }}
+                </option>
+              </select>
+            </template>
+
+            <template v-for="(_, index) in luoRow3Branches" :key="`${side.id}-branch-select-${index}`">
+              <select
+                v-model="luoRow3Branches[index]"
+                class="stem-select bottom-stem"
+                :aria-label="`第三行地支${index + 1}`"
+              >
+                <option value="">—</option>
+                <option v-for="branch in EARTHLY_BRANCHES" :key="branch" :value="branch">
+                  {{ branch }}
+                </option>
+              </select>
+            </template>
+
+            <template v-for="(num, index) in luoBottomNumbers" :key="`${side.id}-bottom-num-${index}`">
+              <div class="number-display bottom-number" aria-label="下方数字">
+                {{ num }}
+              </div>
             </template>
           </div>
         </div>
@@ -238,6 +401,16 @@ h1 {
   font-size: 14px;
 }
 
+.status-text {
+  margin: 8px 0 0;
+  color: #6677aa;
+  font-size: 13px;
+}
+
+.status-text.error {
+  color: #c0392b;
+}
+
 .bagua-groups {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -281,7 +454,9 @@ h2 {
 }
 
 .number-input,
-.label-cell {
+.number-display,
+.label-cell,
+.stem-select {
   width: 100%;
   min-width: 0;
   height: 44px;
@@ -304,6 +479,13 @@ h2 {
   appearance: none;
 }
 
+.number-display {
+  display: grid;
+  place-items: center;
+  color: #2e241d;
+  font: 600 19px/1.2 Georgia, 'Times New Roman', serif;
+}
+
 .top-number {
   background: #f5ddcd;
 }
@@ -319,6 +501,25 @@ h2 {
   color: #261b16;
   font-size: 24px;
   font-weight: 600;
+}
+
+.stem-select {
+  padding: 0 2px;
+  background: #f8ead8;
+  color: #261b16;
+  font-size: 22px;
+  font-weight: 600;
+  font-family: Georgia, 'Times New Roman', serif;
+  cursor: pointer;
+  appearance: none;
+}
+
+.stem {
+  background: #f8ead8;
+}
+
+.bottom-stem {
+  background: #fff8dd;
 }
 
 .branch {
@@ -392,12 +593,15 @@ h2 {
   }
 
   .number-input,
-  .label-cell {
+  .number-display,
+  .label-cell,
+  .stem-select {
     height: 40px;
   }
 
-  .label-cell {
-    font-size: 22px;
+  .label-cell,
+  .stem-select {
+    font-size: 20px;
   }
 
   .result-row {
