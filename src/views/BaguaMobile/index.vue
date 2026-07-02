@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, reactive, ref, watch } from 'vue'
-import { fetchAlmanac, fetchHetuLookup, fetchLuoshuBranchLookup, fetchLuoshuStemLookup } from '@/api/bagua'
+import { fetchAlmanac, fetchHetuCrossLookup, fetchHetuLookup, fetchLuoshuBranchLookup, fetchLuoshuStemLookup } from '@/api/bagua'
 
 type PositionKey = 'top0' | 'top1' | 'top2' | 'top3' | 'bottom0' | 'bottom1' | 'bottom2' | 'bottom3'
 
@@ -15,6 +15,8 @@ type Formula = PositionKey[]
 
 const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
 const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
+const RIVER_ROW2_BRANCHES = ['寅', '卯', '巳', '午', '辰', '戌', '丑', '未', '申', '酉', '亥', '子'] as const
+const MEMO_STORAGE_KEY = 'bagua-memo'
 
 const rowLabels = ['一', '二', '三', '四', '五', '六', '七', '八']
 const maxResultColumns = 6
@@ -36,14 +38,16 @@ const sides = reactive<BaguaSide[]>([
   },
 ])
 
-const riverRow2Stems = ref(['', '', '', ''])
+const riverRow2Branches = ref(['', '', '', ''])
 const riverRow3Stems = ref(['', '', '', ''])
 const luoRow2Stems = ref(['', '', '', ''])
 const luoRow3Branches = ref(['', '', '', ''])
 const yearBranch = ref('')
 const hetuLookupMap = ref<Map<string, number>>(new Map())
+const hetuCrossMap = ref<Map<string, number>>(new Map())
 const luoshuStemMap = ref<Map<string, number>>(new Map())
 const luoshuBranchMap = ref<Map<string, number>>(new Map())
+const memoText = ref(localStorage.getItem(MEMO_STORAGE_KEY) ?? '')
 const dataLoading = ref(true)
 const dataError = ref('')
 
@@ -123,14 +127,29 @@ function lookupInMap(map: Map<string, number>, rowKey: string, colKey: string): 
   return value === undefined ? '' : String(value)
 }
 
+function normalizeHetuBranch(branch: string): string {
+  if (branch === '戌') {
+    return '辰'
+  }
+  if (branch === '未') {
+    return '丑'
+  }
+  return branch
+}
+
 function lookupValue(stem: string, branch: string): string {
   return lookupInMap(hetuLookupMap.value, branch, stem)
 }
 
-const riverTopNumbers = computed(() => {
-  const branch = yearBranch.value
-  return riverRow2Stems.value.map((stem) => lookupValue(stem, branch))
-})
+const riverTopNumbers = computed(() =>
+  riverRow2Branches.value.map((branch) =>
+    lookupInMap(
+      hetuCrossMap.value,
+      normalizeHetuBranch(branch),
+      normalizeHetuBranch(yearBranch.value),
+    ),
+  ),
+)
 
 const riverBottomNumbers = computed(() => {
   const branch = yearBranch.value
@@ -163,6 +182,10 @@ function syncRiverValues() {
 }
 
 watch([riverTopNumbers, riverRow3Stems, yearBranch], syncRiverValues, { deep: true })
+
+watch(memoText, (value) => {
+  localStorage.setItem(MEMO_STORAGE_KEY, value)
+})
 
 function syncLuoValues() {
   const luo = sides.find((side) => side.id === 'luo')
@@ -232,14 +255,16 @@ async function loadBaguaData() {
   const day = String(now.getDate())
 
   try {
-    const [hetu, luoshuStem, luoshuBranch, almanac] = await Promise.all([
+    const [hetu, hetuCross, luoshuStem, luoshuBranch, almanac] = await Promise.all([
       fetchHetuLookup(),
+      fetchHetuCrossLookup(),
       fetchLuoshuStemLookup(),
       fetchLuoshuBranchLookup(),
       fetchAlmanac(year, month, day),
     ])
 
     hetuLookupMap.value = buildLookupMap(hetu.cells)
+    hetuCrossMap.value = buildLookupMap(hetuCross.cells)
     luoshuStemMap.value = buildLookupMap(luoshuStem.cells)
     luoshuBranchMap.value = buildLookupMap(luoshuBranch.cells)
     yearBranch.value = almanac.year_branch
@@ -261,6 +286,13 @@ onMounted(loadBaguaData)
       <p class="eyebrow">八卦计算</p>
       <h1>河洛排盘</h1>
       <p class="description">河洛均通过天干地支查表自动填充数字。</p>
+      <textarea
+        v-model="memoText"
+        class="memo-input"
+        placeholder="备忘..."
+        rows="3"
+        aria-label="备忘"
+      />
       <p v-if="dataLoading" class="status-text">正在加载河图与黄历数据…</p>
       <p v-else-if="dataError" class="status-text error">{{ dataError }}</p>
     </section>
@@ -277,15 +309,15 @@ onMounted(loadBaguaData)
               </div>
             </template>
 
-            <template v-for="(_, index) in riverRow2Stems" :key="`${side.id}-stem-select-${index}`">
+            <template v-for="(_, index) in riverRow2Branches" :key="`${side.id}-branch-select-${index}`">
               <select
-                v-model="riverRow2Stems[index]"
+                v-model="riverRow2Branches[index]"
                 class="stem-select"
-                :aria-label="`第二行天干${index + 1}`"
+                :aria-label="`第二行地支${index + 1}`"
               >
                 <option value="">—</option>
-                <option v-for="stem in HEAVENLY_STEMS" :key="stem" :value="stem">
-                  {{ stem }}
+                <option v-for="branch in RIVER_ROW2_BRANCHES" :key="branch" :value="branch">
+                  {{ branch }}
                 </option>
               </select>
             </template>
@@ -399,6 +431,27 @@ h1 {
   margin: 8px 0 0;
   color: #5f6b82;
   font-size: 14px;
+}
+
+.memo-input {
+  display: block;
+  width: 100%;
+  max-width: 720px;
+  margin: 12px auto 0;
+  padding: 10px 12px;
+  border: 1px solid rgba(116, 135, 180, 0.35);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.92);
+  color: #172033;
+  font: 14px/1.5 inherit;
+  resize: vertical;
+  box-sizing: border-box;
+}
+
+.memo-input:focus {
+  outline: none;
+  border-color: rgba(85, 120, 255, 0.55);
+  box-shadow: 0 0 0 2px rgba(85, 120, 255, 0.12);
 }
 
 .status-text {

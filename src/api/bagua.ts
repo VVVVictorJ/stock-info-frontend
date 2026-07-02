@@ -5,6 +5,10 @@ export function fetchHetuLookup() {
   return http.get<HetuLookupResponse>('/bagua/lookup/hetu')
 }
 
+export function fetchHetuCrossLookup() {
+  return http.get<HetuLookupResponse>('/bagua/lookup/hetu-cross')
+}
+
 export function fetchLuoshuStemLookup() {
   return http.get<LuoshuLookupResponse>('/bagua/lookup/luoshu-stem')
 }
