@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { fetchAlmanac, fetchHetuCrossLookup, fetchHetuLookup, fetchLuoshuBranchLookup, fetchLuoshuStemLookup } from '@/api/bagua'
 
 type PositionKey = 'top0' | 'top1' | 'top2' | 'top3' | 'bottom0' | 'bottom1' | 'bottom2' | 'bottom3'
@@ -48,6 +48,7 @@ const hetuCrossMap = ref<Map<string, number>>(new Map())
 const luoshuStemMap = ref<Map<string, number>>(new Map())
 const luoshuBranchMap = ref<Map<string, number>>(new Map())
 const memoText = ref(localStorage.getItem(MEMO_STORAGE_KEY) ?? '')
+const memoInput = ref<HTMLTextAreaElement | null>(null)
 const dataLoading = ref(true)
 const dataError = ref('')
 
@@ -183,8 +184,18 @@ function syncRiverValues() {
 
 watch([riverTopNumbers, riverBottomNumbers, yearBranch], syncRiverValues, { deep: true })
 
+function autoResizeMemo() {
+  const el = memoInput.value
+  if (!el) {
+    return
+  }
+  el.style.height = 'auto'
+  el.style.height = `${el.scrollHeight}px`
+}
+
 watch(memoText, (value) => {
   localStorage.setItem(MEMO_STORAGE_KEY, value)
+  nextTick(autoResizeMemo)
 })
 
 function syncLuoValues() {
@@ -277,18 +288,23 @@ async function loadBaguaData() {
   }
 }
 
-onMounted(loadBaguaData)
+onMounted(() => {
+  loadBaguaData()
+  nextTick(autoResizeMemo)
+})
 </script>
 
 <template>
   <main class="bagua-page">
     <section class="page-header">
       <textarea
+        ref="memoInput"
         v-model="memoText"
         class="memo-input"
         placeholder="备忘..."
         rows="3"
         aria-label="备忘"
+        @input="autoResizeMemo"
       />
       <p v-if="dataLoading" class="status-text">正在加载河图与黄历数据…</p>
       <p v-else-if="dataError" class="status-text error">{{ dataError }}</p>
@@ -439,9 +455,12 @@ h1 {
   border: 1px solid rgba(116, 135, 180, 0.35);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.92);
-  color: #172033;
-  font: 14px/1.5 inherit;
-  resize: vertical;
+  color: #c0392b;
+  font-weight: 700;
+  font-size: clamp(34px, 6vw, 72px);
+  line-height: 1.4;
+  resize: none;
+  overflow: hidden;
   box-sizing: border-box;
 }
 
@@ -612,6 +631,59 @@ h2 {
 .result-row:nth-child(even) .row-label,
 .result-row:nth-child(even) .result-cell {
   background: #d7e1f4;
+}
+
+@media (min-width: 820px) {
+  .page-header {
+    max-width: 1100px;
+  }
+
+  .memo-input {
+    max-width: 1100px;
+  }
+
+  .bagua-groups {
+    max-width: 1280px;
+    gap: 28px;
+  }
+
+  h2 {
+    font-size: 52px;
+  }
+
+  .input-grid {
+    grid-template-columns: repeat(4, minmax(72px, 1fr));
+  }
+
+  .number-input,
+  .number-display,
+  .label-cell,
+  .stem-select {
+    height: 68px;
+  }
+
+  .number-input,
+  .number-display {
+    font-size: 30px;
+  }
+
+  .label-cell {
+    font-size: 34px;
+  }
+
+  .stem-select {
+    font-size: 34px;
+  }
+
+  .result-row {
+    grid-template-columns: 60px repeat(6, minmax(60px, 1fr));
+  }
+
+  .row-label,
+  .result-cell {
+    min-height: 64px;
+    font-size: 26px;
+  }
 }
 
 @media (max-width: 760px) {
