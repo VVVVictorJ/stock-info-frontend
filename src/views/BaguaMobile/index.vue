@@ -15,7 +15,7 @@ type Formula = PositionKey[]
 
 const HEAVENLY_STEMS = ['甲', '乙', '丙', '丁', '戊', '己', '庚', '辛', '壬', '癸'] as const
 const EARTHLY_BRANCHES = ['子', '丑', '寅', '卯', '辰', '巳', '午', '未', '申', '酉', '戌', '亥'] as const
-const RIVER_ROW2_BRANCHES = ['寅', '卯', '巳', '午', '辰', '戌', '丑', '未', '申', '酉', '亥', '子'] as const
+const RIVER_BRANCH_OPTIONS = ['寅', '卯', '巳', '午', '辰', '戌', '丑', '未', '申', '酉', '亥', '子'] as const
 const MEMO_STORAGE_KEY = 'bagua-memo'
 
 const rowLabels = ['一', '二', '三', '四', '五', '六', '七', '八']
@@ -38,8 +38,8 @@ const sides = reactive<BaguaSide[]>([
   },
 ])
 
-const riverRow2Branches = ref(['', '', '', ''])
-const riverRow3Stems = ref(['', '', '', ''])
+const riverRow2Stems = ref(['', '', '', ''])
+const riverRow3Branches = ref(['', '', '', ''])
 const luoRow2Stems = ref(['', '', '', ''])
 const luoRow3Branches = ref(['', '', '', ''])
 const yearBranch = ref('')
@@ -141,20 +141,20 @@ function lookupValue(stem: string, branch: string): string {
   return lookupInMap(hetuLookupMap.value, branch, stem)
 }
 
-const riverTopNumbers = computed(() =>
-  riverRow2Branches.value.map((branch) =>
+const riverTopNumbers = computed(() => {
+  const branch = yearBranch.value
+  return riverRow2Stems.value.map((stem) => lookupValue(stem, branch))
+})
+
+const riverBottomNumbers = computed(() =>
+  riverRow3Branches.value.map((branch) =>
     lookupInMap(
       hetuCrossMap.value,
-      normalizeHetuBranch(branch),
       normalizeHetuBranch(yearBranch.value),
+      normalizeHetuBranch(branch),
     ),
   ),
 )
-
-const riverBottomNumbers = computed(() => {
-  const branch = yearBranch.value
-  return riverRow3Stems.value.map((stem) => lookupValue(stem, branch))
-})
 
 const luoTopNumbers = computed(() => {
   const branch = yearBranch.value
@@ -177,11 +177,11 @@ function syncRiverValues() {
   })
 
   bottomKeys.forEach((key, index) => {
-    river.values[key] = lookupValue(riverRow3Stems.value[index] ?? '', yearBranch.value)
+    river.values[key] = riverBottomNumbers.value[index] ?? ''
   })
 }
 
-watch([riverTopNumbers, riverRow3Stems, yearBranch], syncRiverValues, { deep: true })
+watch([riverTopNumbers, riverBottomNumbers, yearBranch], syncRiverValues, { deep: true })
 
 watch(memoText, (value) => {
   localStorage.setItem(MEMO_STORAGE_KEY, value)
@@ -283,9 +283,6 @@ onMounted(loadBaguaData)
 <template>
   <main class="bagua-page">
     <section class="page-header">
-      <p class="eyebrow">八卦计算</p>
-      <h1>河洛排盘</h1>
-      <p class="description">河洛均通过天干地支查表自动填充数字。</p>
       <textarea
         v-model="memoText"
         class="memo-input"
@@ -309,28 +306,28 @@ onMounted(loadBaguaData)
               </div>
             </template>
 
-            <template v-for="(_, index) in riverRow2Branches" :key="`${side.id}-branch-select-${index}`">
+            <template v-for="(_, index) in riverRow2Stems" :key="`${side.id}-stem-select-${index}`">
               <select
-                v-model="riverRow2Branches[index]"
+                v-model="riverRow2Stems[index]"
                 class="stem-select"
-                :aria-label="`第二行地支${index + 1}`"
-              >
-                <option value="">—</option>
-                <option v-for="branch in RIVER_ROW2_BRANCHES" :key="branch" :value="branch">
-                  {{ branch }}
-                </option>
-              </select>
-            </template>
-
-            <template v-for="(_, index) in riverRow3Stems" :key="`${side.id}-bottom-select-${index}`">
-              <select
-                v-model="riverRow3Stems[index]"
-                class="stem-select bottom-stem"
-                :aria-label="`第三行天干${index + 1}`"
+                :aria-label="`第二行天干${index + 1}`"
               >
                 <option value="">—</option>
                 <option v-for="stem in HEAVENLY_STEMS" :key="stem" :value="stem">
                   {{ stem }}
+                </option>
+              </select>
+            </template>
+
+            <template v-for="(_, index) in riverRow3Branches" :key="`${side.id}-branch-select-${index}`">
+              <select
+                v-model="riverRow3Branches[index]"
+                class="stem-select bottom-stem"
+                :aria-label="`第三行地支${index + 1}`"
+              >
+                <option value="">—</option>
+                <option v-for="branch in RIVER_BRANCH_OPTIONS" :key="branch" :value="branch">
+                  {{ branch }}
                 </option>
               </select>
             </template>
