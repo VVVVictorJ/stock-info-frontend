@@ -143,27 +143,36 @@ function lookupValue(stem: string, branch: string): string {
 }
 
 const riverTopNumbers = computed(() => {
-  const branch = yearBranch.value
-  return riverRow2Stems.value.map((stem) => lookupValue(stem, branch))
+  const rowKey = riverRow3Branches.value[3] ?? ''
+  if (!rowKey) {
+    return ['', '', '', '']
+  }
+  return riverRow2Stems.value.map((stem) => lookupValue(stem, rowKey))
 })
 
-const riverBottomNumbers = computed(() =>
-  riverRow3Branches.value.map((branch) =>
-    lookupInMap(
-      hetuCrossMap.value,
-      normalizeHetuBranch(yearBranch.value),
-      normalizeHetuBranch(branch),
-    ),
-  ),
-)
+const riverBottomNumbers = computed(() => {
+  const rowKey = riverRow3Branches.value[3] ?? ''
+  if (!rowKey) {
+    return ['', '', '', '']
+  }
+  return riverRow3Branches.value.map((branch) =>
+    lookupInMap(hetuCrossMap.value, rowKey, normalizeHetuBranch(branch)),
+  )
+})
 
 const luoTopNumbers = computed(() => {
-  const branch = yearBranch.value
-  return luoRow2Stems.value.map((stem) => lookupInMap(luoshuStemMap.value, branch, stem))
+  const rowKey = luoRow3Branches.value[3] ?? ''
+  if (!rowKey) {
+    return ['', '', '', '']
+  }
+  return luoRow2Stems.value.map((stem) => lookupInMap(luoshuStemMap.value, rowKey, stem))
 })
 
 const luoBottomNumbers = computed(() => {
-  const rowKey = yearBranch.value
+  const rowKey = luoRow3Branches.value[3] ?? ''
+  if (!rowKey) {
+    return ['', '', '', '']
+  }
   return luoRow3Branches.value.map((colKey) => lookupInMap(luoshuBranchMap.value, rowKey, colKey))
 })
 
