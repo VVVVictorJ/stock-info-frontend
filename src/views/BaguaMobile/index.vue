@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
 import { fetchAlmanac, fetchHetuCrossLookup, fetchHetuLookup, fetchLuoshuBranchLookup, fetchLuoshuStemLookup } from '@/api/bagua'
 
 type PositionKey = 'top0' | 'top1' | 'top2' | 'top3' | 'bottom0' | 'bottom1' | 'bottom2' | 'bottom3'
@@ -51,6 +51,14 @@ const memoText = ref(localStorage.getItem(MEMO_STORAGE_KEY) ?? '')
 const memoInput = ref<HTMLTextAreaElement | null>(null)
 const dataLoading = ref(true)
 const dataError = ref('')
+const viewportSize = ref({ width: 0, height: 0 })
+
+function updateViewportSize() {
+  viewportSize.value = {
+    width: window.innerWidth,
+    height: window.innerHeight,
+  }
+}
 
 const formulas: Formula[][] = [
   [
@@ -298,8 +306,14 @@ async function loadBaguaData() {
 }
 
 onMounted(() => {
+  updateViewportSize()
+  window.addEventListener('resize', updateViewportSize)
   loadBaguaData()
   nextTick(autoResizeMemo)
+})
+
+onUnmounted(() => {
+  window.removeEventListener('resize', updateViewportSize)
 })
 </script>
 
@@ -415,6 +429,10 @@ onMounted(() => {
         </div>
       </article>
     </section>
+
+    <p class="viewport-debug" aria-hidden="true">
+      {{ viewportSize.width }} × {{ viewportSize.height }}
+    </p>
   </main>
 </template>
 
@@ -487,6 +505,16 @@ h1 {
 
 .status-text.error {
   color: #c0392b;
+}
+
+.viewport-debug {
+  margin: 24px auto 0;
+  max-width: 1280px;
+  text-align: center;
+  color: #8896b3;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.04em;
 }
 
 .bagua-groups {
