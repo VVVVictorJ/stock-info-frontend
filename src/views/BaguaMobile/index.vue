@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, onUnmounted, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onMounted, reactive, ref, watch } from 'vue'
 import { fetchAlmanac, fetchHetuCrossLookup, fetchHetuLookup, fetchLuoshuBranchLookup, fetchLuoshuStemLookup } from '@/api/bagua'
 
 type PositionKey = 'top0' | 'top1' | 'top2' | 'top3' | 'bottom0' | 'bottom1' | 'bottom2' | 'bottom3'
@@ -51,14 +51,6 @@ const memoText = ref(localStorage.getItem(MEMO_STORAGE_KEY) ?? '')
 const memoInput = ref<HTMLTextAreaElement | null>(null)
 const dataLoading = ref(true)
 const dataError = ref('')
-const viewportSize = ref({ width: 0, height: 0 })
-
-function updateViewportSize() {
-  viewportSize.value = {
-    width: window.innerWidth,
-    height: window.innerHeight,
-  }
-}
 
 const formulas: Formula[][] = [
   [
@@ -306,14 +298,8 @@ async function loadBaguaData() {
 }
 
 onMounted(() => {
-  updateViewportSize()
-  window.addEventListener('resize', updateViewportSize)
   loadBaguaData()
   nextTick(autoResizeMemo)
-})
-
-onUnmounted(() => {
-  window.removeEventListener('resize', updateViewportSize)
 })
 </script>
 
@@ -429,10 +415,6 @@ onUnmounted(() => {
         </div>
       </article>
     </section>
-
-    <p class="viewport-debug" aria-hidden="true">
-      {{ viewportSize.width }} × {{ viewportSize.height }}
-    </p>
   </main>
 </template>
 
@@ -449,7 +431,8 @@ onUnmounted(() => {
 }
 
 .page-header {
-  max-width: 720px;
+  width: 100%;
+  max-width: none;
   margin: 0 auto 18px;
   text-align: center;
 }
@@ -476,8 +459,8 @@ h1 {
 .memo-input {
   display: block;
   width: 100%;
-  max-width: 720px;
-  margin: 12px auto 0;
+  max-width: none;
+  margin: 12px 0 0;
   padding: 10px 12px;
   border: 1px solid rgba(116, 135, 180, 0.35);
   border-radius: 12px;
@@ -505,16 +488,6 @@ h1 {
 
 .status-text.error {
   color: #c0392b;
-}
-
-.viewport-debug {
-  margin: 24px auto 0;
-  max-width: 1280px;
-  text-align: center;
-  color: #8896b3;
-  font-size: 14px;
-  font-variant-numeric: tabular-nums;
-  letter-spacing: 0.04em;
 }
 
 .bagua-groups {
@@ -671,14 +644,6 @@ h2 {
 }
 
 @media (min-width: 820px) {
-  .page-header {
-    max-width: 1100px;
-  }
-
-  .memo-input {
-    max-width: 1100px;
-  }
-
   .bagua-groups {
     max-width: 1280px;
     gap: 28px;
@@ -720,6 +685,95 @@ h2 {
   .result-cell {
     min-height: 64px;
     font-size: 26px;
+  }
+}
+
+/* 1065×624 等矮屏平板：一屏装下，字仍偏大 */
+@media (min-width: 900px) and (max-height: 700px) {
+  .bagua-page {
+    display: flex;
+    flex-direction: column;
+    height: 100dvh;
+    padding: 6px 10px 4px;
+    overflow: hidden;
+  }
+
+  .page-header {
+    margin: 0 0 4px;
+    flex-shrink: 0;
+  }
+
+  .memo-input {
+    margin: 0;
+    padding: 4px 10px;
+    font-size: 28px;
+    line-height: 1.25;
+    max-height: 72px;
+    overflow-y: auto;
+  }
+
+  .status-text {
+    margin: 2px 0 0;
+    font-size: 12px;
+  }
+
+  .bagua-groups {
+    flex: 1;
+    min-height: 0;
+    max-width: none;
+    width: 100%;
+    gap: 10px;
+    align-content: stretch;
+  }
+
+  .bagua-card {
+    gap: 6px;
+    padding: 8px 8px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px rgba(60, 82, 130, 0.12);
+  }
+
+  .input-area {
+    gap: 6px;
+  }
+
+  h2 {
+    font-size: 36px;
+    letter-spacing: 0.08em;
+  }
+
+  .input-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .number-input,
+  .number-display,
+  .label-cell,
+  .stem-select {
+    height: 36px;
+  }
+
+  .number-input,
+  .number-display {
+    font-size: 22px;
+  }
+
+  .label-cell {
+    font-size: 24px;
+  }
+
+  .stem-select {
+    font-size: 24px;
+  }
+
+  .result-row {
+    grid-template-columns: 30px repeat(6, minmax(0, 1fr));
+  }
+
+  .row-label,
+  .result-cell {
+    min-height: 26px;
+    font-size: 18px;
   }
 }
 
