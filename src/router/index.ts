@@ -3,6 +3,7 @@ import Home from '@/views/Home.vue'
 import CatchRaise from '@/views/CatchRaise/index.vue'
 import Stock from '@/views/Stock.vue'
 import TradeDateQuery from '@/views/TradeDateQuery/index.vue'
+import HistoryAppearanceQuery from '@/views/HistoryAppearanceQuery/index.vue'
 import PriceCompare from '@/views/PriceCompare/index.vue'
 import TrackData from '@/views/TrackData/index.vue'
 import DynamicBacktrack from '@/views/DynamicBacktrack/index.vue'
@@ -52,6 +53,12 @@ const router = createRouter({
       name: 'TradeDateQuery',
       component: TradeDateQuery,
       meta: { title: '交易日查询' },
+    },
+    {
+      path: '/history-appearance-query',
+      name: 'HistoryAppearanceQuery',
+      component: HistoryAppearanceQuery,
+      meta: { title: '历史出现查询' },
     },
     {
       path: '/price-compare',

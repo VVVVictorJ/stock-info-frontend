@@ -7,6 +7,10 @@ import type {
   TradeDatePlateRefreshRequest,
   TradeDatePlateRefreshResponse,
 } from '@/types/tradeDateQuery'
+import type {
+  StockAppearanceQueryRequest,
+  StockAppearanceQueryResponse,
+} from '@/types/stockAppearanceQuery'
 import type { PriceCompareRequest, PriceCompareResponse } from '@/types/priceCompare'
 import type {
   TrackQueryRequest,
@@ -81,6 +85,11 @@ export async function fetchTradeDateQuery(params: TradeDateQueryRequest) {
 // 交易日板块补全（后端路径：/stock-trade-date-query/refresh-plates）
 export async function refreshTradeDatePlates(params: TradeDatePlateRefreshRequest) {
   return http.post<TradeDatePlateRefreshResponse>('/stock-trade-date-query/refresh-plates', params)
+}
+
+// 历史出现查询（后端路径：/stock-appearance-query）
+export async function fetchStockAppearanceQuery(params: StockAppearanceQueryRequest) {
+  return http.post<StockAppearanceQueryResponse>('/stock-appearance-query', params)
 }
 
 // 价格对比查询（后端路径：/stock-price-compare）

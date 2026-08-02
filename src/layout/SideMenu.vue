@@ -118,6 +118,7 @@ const menuConfig: MenuItem[] = [
     icon: 'calendar',
     children: [
       { index: '/trade-date-query', title: '交易日查询', icon: 'calendar' },
+      { index: '/history-appearance-query', title: '历史出现查询', icon: 'search' },
       { index: '/price-compare', title: '价格对比', icon: 'dataAnalysis' },
       { index: '/track-data', title: '追踪数据', icon: 'aim' },
       { index: '/dynamic-backtrack', title: '动态回溯', icon: 'dataAnalysis' },
