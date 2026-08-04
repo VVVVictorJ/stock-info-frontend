@@ -63,6 +63,17 @@
       >
         <el-icon><Download /></el-icon>
       </el-button>
+      <el-button
+        class="export-image-button"
+        size="small"
+        circle
+        title="导出股票代码图片"
+        :loading="exporting"
+        :disabled="exporting || leftTableData.length === 0"
+        @click="handleExportImage"
+      >
+        <el-icon><Picture /></el-icon>
+      </el-button>
       <span v-if="hasData" class="result-stats">
         共 {{ filteredTotal }} 只股票
       </span>
@@ -238,8 +249,14 @@ import ResultCard from '@/component/common/ResultCard.vue'
 import { formatNumber, formatDateTime } from '@/utils/formatters'
 import { getChangeClass, getPriceTrend, getPriceTrendClass } from '@/utils/priceStyles'
 import { exportStockListToXlsx } from '@/utils/exportExcel'
+import {
+  generateStockCodesBlob,
+  downloadPngBlob,
+  supportsImageClipboard,
+  writeImageToClipboard,
+} from '@/utils/exportImage'
 import type { TradeDateQueryItem } from '@/types/tradeDateQuery'
-import { Refresh, Setting, Plus, Minus, Download } from '@element-plus/icons-vue'
+import { Refresh, Setting, Plus, Minus, Download, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
 const props = defineProps<{
@@ -332,6 +349,44 @@ async function handleDownload() {
     fileName: `trade-date-query-${exportDate}.xlsx`,
   })
 }
+
+// ==================== 股票代码导出图片 ====================
+const exporting = ref(false)
+
+async function handleExportImage() {
+  if (props.leftTableData.length === 0) {
+    ElMessage.warning('暂无可导出的股票代码')
+    return
+  }
+  if (exporting.value) return
+
+  exporting.value = true
+  try {
+    const codes = props.leftTableData.map(item => item.stock_code)
+
+    const blobPromise = generateStockCodesBlob(codes)
+    const clipboardPromise = supportsImageClipboard()
+      ? writeImageToClipboard(blobPromise)
+      : Promise.resolve(false)
+
+    const blob = await blobPromise
+    if (!blob) throw new Error('canvas toBlob returned null')
+
+    downloadPngBlob(blob)
+
+    const copied = await clipboardPromise
+    if (copied) {
+      ElMessage.success('图片已下载并复制到剪贴板')
+    } else {
+      ElMessage.warning('图片已下载（当前浏览器不支持复制图片到剪贴板）')
+    }
+  } catch (err) {
+    console.error('[export-image]', err)
+    ElMessage.error('图片生成失败，请重试')
+  } finally {
+    exporting.value = false
+  }
+}
 </script>
 
 <style scoped>
@@ -364,6 +419,10 @@ async function handleDownload() {
 }
 
 .download-button {
+  margin-left: 4px;
+}
+
+.export-image-button {
   margin-left: 4px;
 }
 
