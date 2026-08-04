@@ -63,9 +63,9 @@ onMounted(async () => {
 // 构造查询参数（仅携带已填写的条件）
 function buildParams(page: number, pageSize: number): StockAppearanceQueryRequest {
   const params: StockAppearanceQueryRequest = { page, page_size: pageSize }
-  const code = stockCode.value.trim()
-  const name = stockName.value.trim()
-  const plate = plateCode.value.trim()
+  const code = (stockCode.value ?? '').trim()
+  const name = (stockName.value ?? '').trim()
+  const plate = (plateCode.value ?? '').trim()
   if (code) params.stock_code = code
   if (name) params.stock_name = name
   if (plate) params.plate_code = plate
@@ -133,7 +133,8 @@ watch(leftTableData, (data) => {
 
 // 查询处理
 async function handleQuery() {
-  if (!stockCode.value.trim() && !stockName.value.trim() && !plateCode.value.trim()) {
+  // el-select 清空时会 emit undefined，统一归一化为空字符串
+  if (!(stockCode.value ?? '').trim() && !(stockName.value ?? '').trim() && !(plateCode.value ?? '').trim()) {
     errorMessage.value = '请至少填写一个查询条件'
     return
   }
