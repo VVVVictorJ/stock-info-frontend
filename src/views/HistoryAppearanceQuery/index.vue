@@ -94,22 +94,24 @@ async function loadAllData(totalRecordsCount: number) {
   }
 }
 
-// 左表格数据（去重后的股票列表）
+// 左表格数据（去重后的股票列表，按最近出现时间从新到旧）
 const leftTableData = computed(() => {
   const seen = new Set<string>()
-  return allData.value.filter(item => {
-    if (seen.has(item.stock_code)) return false
-    seen.add(item.stock_code)
-    return true
-  })
+  return [...allData.value]
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
+    .filter(item => {
+      if (seen.has(item.stock_code)) return false
+      seen.add(item.stock_code)
+      return true
+    })
 })
 
-// 右表格数据（选中股票的历史出现记录，按创建时间升序）
+// 右表格数据（选中股票的历史出现记录，按创建时间从新到旧）
 const rightTableData = computed(() => {
   if (!selectedStockCode.value) return []
   return allData.value
     .filter(item => item.stock_code === selectedStockCode.value)
-    .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+    .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())
 })
 
 // 筛选后的总股票数（去重后）

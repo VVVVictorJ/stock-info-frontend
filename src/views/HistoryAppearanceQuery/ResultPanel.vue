@@ -122,6 +122,7 @@
             stripe
             style="width: 100%"
             height="100%"
+            :default-sort="{ prop: 'created_at', order: 'descending' }"
           >
             <el-table-column prop="latest_price" label="最新价" min-width="100" sortable align="right">
               <template #default="{ row }">
