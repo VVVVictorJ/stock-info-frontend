@@ -50,6 +50,7 @@ import type {
   MonthlyMaCrossResponse,
 } from '@/types/multiLevelFilter'
 import type { StockPlateListItem } from '@/types/stockPlate'
+import type { DailyStockCountItem, DailyStockCountQuery } from '@/types/dailyStatistics'
 
 /**
  * 查询单只股票信息
@@ -198,4 +199,9 @@ export async function runDailyMaCrossAfterMonthly(body: MonthlyMaCrossRequest = 
 // 板块字典（后端路径：/stock-plates）
 export async function fetchStockPlatesList() {
   return http.get<StockPlateListItem[]>('/stock-plates')
+}
+
+// 每日统计：日期范围内每天抓取的去重股票支数（后端路径：/stock-snapshots/daily-counts）
+export async function fetchDailyStockCounts(params: DailyStockCountQuery) {
+  return http.get<DailyStockCountItem[]>('/stock-snapshots/daily-counts', { params })
 }

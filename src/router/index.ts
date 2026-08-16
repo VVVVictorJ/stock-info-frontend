@@ -3,6 +3,7 @@ import Home from '@/views/Home.vue'
 import CatchRaise from '@/views/CatchRaise/index.vue'
 import Stock from '@/views/Stock.vue'
 import TradeDateQuery from '@/views/TradeDateQuery/index.vue'
+import DailyStatistics from '@/views/DailyStatistics/index.vue'
 import HistoryAppearanceQuery from '@/views/HistoryAppearanceQuery/index.vue'
 import PriceCompare from '@/views/PriceCompare/index.vue'
 import TrackData from '@/views/TrackData/index.vue'
@@ -47,6 +48,12 @@ const router = createRouter({
       name: 'MultiLevelFilter',
       component: MultiLevelFilter,
       meta: { title: '多级筛选' },
+    },
+    {
+      path: '/daily-statistics',
+      name: 'DailyStatistics',
+      component: DailyStatistics,
+      meta: { title: '每日统计' },
     },
     {
       path: '/trade-date-query',
