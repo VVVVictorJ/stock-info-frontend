@@ -15,6 +15,7 @@ import ConvertibleBondQuery from '@/views/ConvertibleBondQuery/index.vue'
 import MultiLevelFilter from '@/views/MultiLevelFilter/index.vue'
 import PlateStatistics from '@/views/BasicDataAnalysis/PlateStatistics/index.vue'
 import BaguaMobile from '@/views/BaguaMobile/index.vue'
+import ExportButtonConfig from '@/views/Config/ExportButtonConfig/index.vue'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -108,6 +109,12 @@ const router = createRouter({
       name: 'PlateStatistics',
       component: PlateStatistics,
       meta: { title: '板块数据统计' },
+    },
+    {
+      path: '/config/export-button-config',
+      name: 'ExportButtonConfig',
+      component: ExportButtonConfig,
+      meta: { title: '导出按钮配置' },
     },
     {
       path: '/bagua',

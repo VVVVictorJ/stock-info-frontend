@@ -63,6 +63,8 @@ import {
   Aim,
   MagicStick,
   Histogram,
+  Setting,
+  Picture,
 } from '@element-plus/icons-vue'
 
 // ==================== 图标映射配置 ====================
@@ -77,6 +79,8 @@ const iconMap: Record<string, Component> = {
   aim: Aim,
   magicStick: MagicStick,
   histogram: Histogram,
+  setting: Setting,
+  picture: Picture,
 }
 
 // ==================== 菜单项类型定义 ====================
@@ -142,6 +146,15 @@ const menuConfig: MenuItem[] = [
     icon: 'histogram',
     children: [
       { index: '/basic-data-analysis/plate-statistics', title: '板块数据统计', icon: 'dataAnalysis' }
+    ]
+  },
+  // 配置
+  {
+    index: 'config',
+    title: '配置',
+    icon: 'setting',
+    children: [
+      { index: '/config/export-button-config', title: '导出按钮配置', icon: 'picture' }
     ]
   },
   // 定时任务

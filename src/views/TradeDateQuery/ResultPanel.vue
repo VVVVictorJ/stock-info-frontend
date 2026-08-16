@@ -74,6 +74,34 @@
       >
         <el-icon><Picture /></el-icon>
       </el-button>
+      <el-button
+        class="export-image-button export-image-button-zrzt"
+        size="small"
+        circle
+        title="导出昨日涨停_含一字"
+        :loading="exporting"
+        :disabled="exporting || leftTableData.length === 0"
+        @click="handleExportZrzt"
+      >
+        <el-icon><Picture /></el-icon>
+      </el-button>
+      <el-tooltip
+        v-for="config in exportConfigs"
+        :key="config.id"
+        :content="`导出：${config.name}`"
+        placement="top"
+      >
+        <el-button
+          class="export-image-button export-image-button-config"
+          size="small"
+          circle
+          :loading="exporting"
+          :disabled="exporting || leftTableData.length === 0"
+          @click="handleExportByConfig(config)"
+        >
+          <el-icon><Picture /></el-icon>
+        </el-button>
+      </el-tooltip>
       <span v-if="hasData" class="result-stats">
         共 {{ filteredTotal }} 只股票
       </span>
@@ -255,7 +283,9 @@ import {
   supportsImageClipboard,
   writeImageToClipboard,
 } from '@/utils/exportImage'
+import { useExportButtonConfigs } from '@/composables/useExportButtonConfigs'
 import type { TradeDateQueryItem } from '@/types/tradeDateQuery'
+import type { ExportButtonConfigItem } from '@/types/exportButtonConfig'
 import { Refresh, Setting, Plus, Minus, Download, Picture } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 
@@ -353,6 +383,12 @@ async function handleDownload() {
 // ==================== 股票代码导出图片 ====================
 const exporting = ref(false)
 
+const {
+  configs: exportConfigs,
+  exportZrzt,
+  exportByConfig,
+} = useExportButtonConfigs('trade-date-query')
+
 async function handleExportImage() {
   if (props.leftTableData.length === 0) {
     ElMessage.warning('暂无可导出的股票代码')
@@ -386,6 +422,14 @@ async function handleExportImage() {
   } finally {
     exporting.value = false
   }
+}
+
+async function handleExportZrzt() {
+  await exportZrzt(props.leftTableData)
+}
+
+async function handleExportByConfig(config: ExportButtonConfigItem) {
+  await exportByConfig(props.leftTableData, config)
 }
 </script>
 
@@ -424,6 +468,18 @@ async function handleExportImage() {
 
 .export-image-button {
   margin-left: 4px;
+}
+
+.export-image-button-zrzt:hover {
+  color: #f56c6c;
+  border-color: #f56c6c;
+  background-color: rgba(245, 108, 108, 0.1);
+}
+
+.export-image-button-config:hover {
+  color: #e6a23c;
+  border-color: #e6a23c;
+  background-color: rgba(230, 162, 60, 0.1);
 }
 
 .column-config {

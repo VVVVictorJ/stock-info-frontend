@@ -72,15 +72,15 @@ export async function generateStockCodesBlob(codes: string[]): Promise<Blob | nu
 }
 
 /**
- * 通过动态 <a download> 触发 PNG 下载，文件名：stocks-YYYYMMDD-HHmmss.png
+ * 通过动态 <a download> 触发 PNG 下载，文件名：stocks-YYYYMMDD-HHmmss{suffix}.png
  */
-export function downloadPngBlob(blob: Blob): void {
+export function downloadPngBlob(blob: Blob, suffix: string = ''): void {
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
   const t = new Date()
   const p = (n: number) => String(n).padStart(2, '0')
   a.href = url
-  a.download = `stocks-${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}.png`
+  a.download = `stocks-${t.getFullYear()}${p(t.getMonth() + 1)}${p(t.getDate())}-${p(t.getHours())}${p(t.getMinutes())}${p(t.getSeconds())}${suffix}.png`
   document.body.appendChild(a)
   a.click()
   a.remove()
